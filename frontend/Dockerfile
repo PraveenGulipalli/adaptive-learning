@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -28,20 +28,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built application from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs \
-    && adduser -S nextjs -u 1001
+# Install curl for health checks
+RUN apk add --no-cache curl
 
-# Set proper permissions
-RUN chown -R nextjs:nodejs /usr/share/nginx/html \
-    && chown -R nextjs:nodejs /var/cache/nginx \
-    && chown -R nextjs:nodejs /var/log/nginx \
-    && chown -R nextjs:nodejs /etc/nginx/conf.d \
-    && touch /var/run/nginx.pid \
-    && chown -R nextjs:nodejs /var/run/nginx.pid
-
-# Switch to non-root user
-USER nextjs
+# Create nginx user and set permissions
+RUN addgroup -g 101 -S nginx || true \
+    && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
 
 # Expose port
 EXPOSE 3000

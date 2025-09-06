@@ -1,36 +1,33 @@
 {
   "name": "adaptive-learning",
   "version": "1.0.0",
-  "description": "A modern full-stack adaptive learning platform built with FastAPI backend and React frontend",
-  "main": "index.js",
+  "description": "Adaptive Learning Platform - Full Stack Application",
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
-    "backend": "cd backend && python3 run.py",
-    "frontend": "cd frontend && npm start",
-    "install-all": "npm install && cd frontend && npm install && cd ../backend && pip3 install -r requirements.txt",
-    "build": "cd frontend && npm install && npm run build",
-    "test": "cd frontend && npm test",
-    "test-backend": "cd backend && pytest",
-    "setup": "npm run install-all"
+    "build": "echo 'Use Docker for building'",
+    "start": "echo 'Use Docker for starting'",
+    "dev": "docker-compose up --build",
+    "prod": "docker-compose -f docker-compose.yml up --build"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/adaptive-learning.git"
   },
   "keywords": [
     "adaptive-learning",
+    "education",
     "fastapi",
     "react",
-    "education",
-    "learning-platform",
-    "full-stack"
+    "docker"
   ],
-  "author": "Praveen",
-  "license": "MIT",
-  "devDependencies": {
-    "commitizen": "^4.3.1",
-    "concurrently": "^8.2.2",
-    "cz-conventional-changelog": "^3.3.0"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  }
+  "author": "Your Name",
+  "license": "MIT"
 }
