@@ -1,6 +1,7 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "backend/Dockerfile"
+dockerfilePath = "frontend/Dockerfile"
+dockerContext = "frontend"
 
 [deploy]
 healthcheckPath = "/health"
@@ -9,5 +10,4 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [env]
-NODE_ENV = "production"
-PYTHONPATH = "/app"
+REACT_APP_ENV = "production"
