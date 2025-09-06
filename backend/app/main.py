@@ -74,6 +74,54 @@ async def health_check():
     }
 
 
+# Test endpoint for course API (no authentication)
+@app.get("/course/{course_id}/assets")
+async def test_course_assets(course_id: str):
+    """Test endpoint for course assets (no authentication)"""
+    try:
+        from app.core.mongodb import get_database
+        from app.services.course_service import CourseService
+        
+        db = get_database()
+        if db is None:
+            return {"error": "Database not connected"}
+        
+        course_service = CourseService(db)
+        course = await course_service.get_course_with_assets(course_id)
+        
+        if course:
+            return course
+        else:
+            return {"error": "Course not found"}
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# Test endpoint for course API with user progress (no authentication)
+@app.get("/course/{course_id}/assets/progress/{user_id}")
+async def test_course_assets_with_progress(course_id: str, user_id: str):
+    """Test endpoint for course assets with user progress (no authentication)"""
+    try:
+        from app.core.mongodb import get_database
+        from app.services.course_service import CourseService
+        
+        db = get_database()
+        if db is None:
+            return {"error": "Database not connected"}
+        
+        course_service = CourseService(db)
+        course = await course_service.get_course_with_user_progress(course_id, user_id)
+        
+        if course:
+            return course
+        else:
+            return {"error": "Course not found"}
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
