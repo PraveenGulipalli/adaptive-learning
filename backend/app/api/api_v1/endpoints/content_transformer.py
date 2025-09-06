@@ -104,48 +104,65 @@ VISUAL CUE 4: [Optional extra if needed]
 """
         }
         
-        # Handle original style without AI transformation
-        if request.style == "original":
-            output = request.content
-        else:
+            # Create domain-specific context based on predefined categories
+            domain_contexts = {
+                "engineering-student": "Use examples in circuits, code snippets, algorithms, and technical implementations",
+                "medical-student": "Use case studies in healthcare, patient scenarios, medical procedures, and clinical examples", 
+                "business-student": "Use marketing examples, finance scenarios, business strategies, and corporate case studies",
+                "teacher-trainer": "Use classroom storytelling, pedagogy techniques, educational methods, and teaching scenarios",
+                "working-professional": "Use real-world workplace analogies, professional scenarios, industry examples, and practical applications"
+            }
+            
+            domain_context = domain_contexts.get(request.domain, f"Use examples relevant to {request.domain}")
+            
+            # Add keywords context if provided
+            keywords_context = f"\nAdditional guidance: {request.keywords}" if request.keywords else ""
+            
             # Create the AI prompt based on selected style
             prompt = f"""You are an AI content transformer. 
-You will receive four inputs:
-1. Style (storytelling, visual_cue, or summary)
-2. Content (raw lecture, case study, or concept)
-3. Domain (e.g., Business, Engineering, Medicine, Education, etc.)
-4. Hobby (e.g., Movies, Cricket, Gaming, Music, etc.)
+You will receive inputs for content transformation based on specific learner profiles.
+
+Domain Context: {domain_context}
+Hobby Context: Connect concepts to {request.hobby} for better relatability{keywords_context}
 
 Your task is to generate content in the specified style:
 
 {style_prompts[request.style]}
 
-### Examples for {request.style.title()} Mode:
+### Domain-Specific Examples:
+
+**For engineering-student:** Use circuit diagrams, code examples, algorithm explanations
+**For medical-student:** Use patient cases, diagnostic scenarios, treatment procedures  
+**For business-student:** Use market analysis, financial models, strategic planning
+**For teacher-trainer:** Use classroom analogies, learning techniques, educational frameworks
+**For working-professional:** Use workplace situations, project management, industry practices
+
+### Example for {request.style.title()} Mode:
 
 **Content:** "Neural networks learn patterns from data."
-**Domain:** Business
+**Domain:** engineering-student  
 **Hobby:** Cricket
 
 **Storytelling Mode Example:** 
-"Imagine a cricket coach who studies thousands of player stats (data) to predict the best batting order. That's how neural networks learn patterns to make predictions."
+"Imagine writing a machine learning algorithm that analyzes cricket player performance data - just like how you'd code a neural network that processes input data through layers of nodes, learning patterns to predict the best batting order for the next match."
 
 **Visual Cue Mode Example:** 
-VISUAL CUE 1: 🏏📊➡️🧠➡️🎯 (Cricket data → Neural Network → Target prediction)
-VISUAL CUE 2: 📈📋➡️🤖➡️💼 (Business charts → AI brain → Better decisions)  
-VISUAL CUE 3: Data ➡️ NN ➡️ Pattern ➡️ 🏆 (Linear flow to success)
-VISUAL CUE 4: 🧠=🏏coach (Neural Network equals cricket coach analogy)
+VISUAL CUE 1: 💻📊➡️🧠➡️🏏 (Code processing data → Neural Network → Cricket prediction)
+VISUAL CUE 2: ```python\nmodel.fit(cricket_data)``` ➡️ 🎯 (Training code → Accurate predictions)
+VISUAL CUE 3: Input Layer ➡️ Hidden Layers ➡️ Output = Best Team (Network architecture)
+VISUAL CUE 4: for epoch in range(100): train() ➡️ 🏆 (Training loop → Victory)
 
 **Summary Mode Example:** 
-"Neural networks are like a cricket coach for business — analyzing tons of data to spot patterns and make smarter predictions."
+"Neural networks are like coding a smart cricket analytics program - they process data through multiple layers (like nested functions) to learn patterns and make predictions about player performance."
 
 ---
 
-Now transform this content in {request.style} style:
+Now transform this content for {request.domain} who loves {request.hobby}:
 
 **Style:** {request.style}
 **Content:** "{request.content}"
-**Domain:** {request.domain}
-**Hobby:** {request.hobby}
+**Domain:** {request.domain} - {domain_context}
+**Hobby:** {request.hobby}{keywords_context}
 
 Please provide ONLY the {request.style} output without any formatting or labels:"""
 

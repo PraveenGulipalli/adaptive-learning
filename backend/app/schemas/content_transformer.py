@@ -14,8 +14,9 @@ class ContentTransformerRequest(BaseModel):
     assetCode: str = Field(..., min_length=1, description="Asset code identifier")
     style: TransformationStyle = Field(..., description="Transformation style (storytelling, visual_cue, summary, or original)")
     content: str = Field(..., min_length=10, description="Raw content to transform (lecture, case study, or concept)")
-    domain: str = Field(..., min_length=2, description="Domain context (e.g., Business, Engineering, Medicine, Education)")
+    domain: str = Field(..., min_length=2, description="Domain context (engineering-student, medical-student, business-student, teacher-trainer, working-professional)")
     hobby: str = Field(..., min_length=2, description="Hobby context (e.g., Movies, Cricket, Gaming, Music)")
+    keywords: Optional[str] = Field(None, description="Optional keywords to guide content generation (e.g., 'beginner-friendly', 'advanced', 'practical examples', 'case studies')")
 
 class ContentTransformerResponse(BaseModel):
     """Response model for content transformation"""
