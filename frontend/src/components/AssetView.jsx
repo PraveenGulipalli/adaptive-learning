@@ -214,7 +214,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
             <div className="flex space-x-2">
               <button
                 className={`btn-primary text-sm ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
-                // onClick={handleNextClick}
+                onClick={handleNextClick}
                 disabled={isGeneratingQuiz}
               >
                 {isGeneratingQuiz ? (
