@@ -1,4 +1,4 @@
-# Standalone Backend Dockerfile - no external file dependencies
+# Completely standalone Dockerfile - no external file dependencies
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -6,7 +6,7 @@ WORKDIR /app
 # Essential environment variables only
 ENV PYTHONUNBUFFERED=1
 
-# Install pip and all packages in one step (no requirements.txt needed)
+# Install pip and all packages in one step
 RUN pip install --upgrade pip && \
     pip install \
         fastapi==0.104.1 \
@@ -19,7 +19,7 @@ RUN pip install --upgrade pip && \
         pydantic==2.5.0 \
         python-multipart==0.0.6
 
-# Copy application
+# Copy application (this should work since we're in the backend directory)
 COPY . .
 
 # Expose port
