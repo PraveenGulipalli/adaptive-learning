@@ -5,17 +5,17 @@ from contextlib import asynccontextmanager
 import time
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.mongodb import connect_to_mongo, close_mongo_connection
 from app.api.api_v1.api import api_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    Base.metadata.create_all(bind=engine)
+    await connect_to_mongo()
     yield
     # Shutdown
-    pass
+    await close_mongo_connection()
 
 
 # Create FastAPI app
@@ -65,7 +65,13 @@ async def root():
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": time.time()}
+    from app.core.mongodb import test_mongodb_connection
+    mongodb_status = test_mongodb_connection()
+    return {
+        "status": "healthy", 
+        "timestamp": time.time(),
+        "mongodb": "connected" if mongodb_status else "disconnected"
+    }
 
 
 # Global exception handler

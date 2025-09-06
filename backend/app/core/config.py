@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     description: str = "A modern adaptive learning platform with FastAPI backend and React frontend"
     
+    # Google API
+    google_api_key: str = ""
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
