@@ -622,20 +622,156 @@ async def get_asset(
             
             if fallback_match:
                 logger.info(f"Found original style record for code={code}")
-                # Convert ObjectId fields to strings for JSON response
-                fallback_match["id"] = str(fallback_match["_id"])
-                del fallback_match["_id"]
-                if "code" in fallback_match and hasattr(fallback_match["code"], 'generation_time'):
-                    fallback_match["code"] = str(fallback_match["code"])
-                if "created_at" in fallback_match and hasattr(fallback_match["created_at"], 'isoformat'):
-                    fallback_match["created_at"] = fallback_match["created_at"].isoformat()
                 
-                return {
-                    "found": True,
-                    "match_type": "default_original",
-                    "asset": fallback_match,
-                    "note": f"No specific match found for domain='{domain}', hobby='{hobby}', style='{style}'. Returning default original content for asset code '{code}'."
-                }
+                # If the requested style is 'original', return the original content
+                if style == "original":
+                    # Convert ObjectId fields to strings for JSON response
+                    fallback_match["id"] = str(fallback_match["_id"])
+                    del fallback_match["_id"]
+                    if "code" in fallback_match and hasattr(fallback_match["code"], 'generation_time'):
+                        fallback_match["code"] = str(fallback_match["code"])
+                    if "created_at" in fallback_match and hasattr(fallback_match["created_at"], 'isoformat'):
+                        fallback_match["created_at"] = fallback_match["created_at"].isoformat()
+                    
+                    return {
+                        "found": True,
+                        "match_type": "default_original",
+                        "asset": fallback_match,
+                        "note": f"Original style found for asset code '{code}'."
+                    }
+                
+                # If we have original content but need a different style, generate new content
+                try:
+                    logger.info(f"Generating new {style} content for code={code} using original content")
+                    
+                    # Use original content to generate new style
+                    original_content = fallback_match.get("content", "")
+                    
+                    if not original_content:
+                        raise ValueError("Original content is empty")
+                    
+                    # Generate new content using AI
+                    if style == "original":
+                        output = original_content
+                    else:
+                        # Style-specific prompts
+                        style_prompts = {
+                            "storytelling": """
+### Storytelling Mode:
+- Convert the given content into a short storytelling analogy.
+- Make it relevant to the given domain and hobby.
+- Use simple, engaging language.
+- Create a narrative that helps explain the concept.
+""",
+                            "visual_cue": """
+### Visual Cue Mode - Visual Instructions:
+- Create text-based visual cues that explain the content.
+- Use emojis, arrows (➡️), and symbolic representations.
+- Provide 3-4 different visual cue formats.
+- Make it hobby and domain relevant.
+- Focus on visual learning through text symbols.
+""",
+                            "summary": """
+### Summary Mode:
+- Generate a concise summary of the content.
+- Make it clear, informative, and easy to understand.
+- Use analogies from the hobby to explain domain concepts.
+"""
+                        }
+                        
+                        # Create domain-specific context
+                        domain_contexts = {
+                            "engineering-student": "Use examples in circuits, code snippets, algorithms, and technical implementations",
+                            "medical-student": "Use case studies in healthcare, patient scenarios, medical procedures, and clinical examples", 
+                            "business-student": "Use marketing examples, finance scenarios, business strategies, and corporate case studies",
+                            "teacher-trainer": "Use classroom storytelling, pedagogy techniques, educational methods, and teaching scenarios",
+                            "working-professional": "Use real-world workplace analogies, professional scenarios, industry examples, and practical applications"
+                        }
+                        
+                        domain_context = domain_contexts.get(domain, f"Use examples relevant to {domain}")
+                        
+                        # Create the AI prompt
+                        prompt = f"""You are an AI content transformer. 
+You will receive inputs for content transformation based on specific learner profiles.
+
+Domain Context: {domain_context}
+Hobby Context: Connect concepts to {hobby} for better relatability
+
+Your task is to generate content in the specified style:
+
+{style_prompts[style]}
+
+Now transform this content for {domain} who loves {hobby}:
+
+**Style:** {style}
+**Content:** "{original_content}"
+**Domain:** {domain} - {domain_context}
+**Hobby:** {hobby}
+
+Please provide ONLY the {style} output without any formatting or labels:"""
+
+                        # Generate response using Google Generative AI
+                        response = model.generate_content(prompt)
+                        
+                        if not response.text:
+                            raise ValueError("AI failed to generate content")
+                        
+                        output = response.text.strip()
+                        
+                        # Clean up any unwanted formatting
+                        if output.startswith('"') and output.endswith('"'):
+                            output = output[1:-1]
+                    
+                    # Insert the new generated content into assets collection
+                    try:
+                        code_as_objectid = ObjectId(code)
+                    except Exception:
+                        code_as_objectid = code
+                        
+                    new_asset_data = {
+                        "code": code_as_objectid,
+                        "content": output,
+                        "style": style,
+                        "domain": domain,
+                        "hobby": hobby,
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow(),
+                        "status": "not-started"
+                    }
+                    
+                    result = await db["assets"].insert_one(new_asset_data)
+                    new_asset_data["id"] = str(result.inserted_id)
+                    new_asset_data["code"] = str(new_asset_data["code"])
+                    if "created_at" in new_asset_data and hasattr(new_asset_data["created_at"], 'isoformat'):
+                        new_asset_data["created_at"] = new_asset_data["created_at"].isoformat()
+                    if "updated_at" in new_asset_data and hasattr(new_asset_data["updated_at"], 'isoformat'):
+                        new_asset_data["updated_at"] = new_asset_data["updated_at"].isoformat()
+                    
+                    logger.info(f"Successfully generated and inserted new {style} content for code={code}")
+                    
+                    return {
+                        "found": True,
+                        "match_type": "generated",
+                        "asset": new_asset_data,
+                        "note": f"Generated new {style} content for asset code '{code}' using original content and inserted into database."
+                    }
+                    
+                except Exception as gen_error:
+                    logger.error(f"Failed to generate content: {str(gen_error)}")
+                    # If generation fails, return original as fallback
+                    fallback_match["id"] = str(fallback_match["_id"])
+                    del fallback_match["_id"]
+                    if "code" in fallback_match and hasattr(fallback_match["code"], 'generation_time'):
+                        fallback_match["code"] = str(fallback_match["code"])
+                    if "created_at" in fallback_match and hasattr(fallback_match["created_at"], 'isoformat'):
+                        fallback_match["created_at"] = fallback_match["created_at"].isoformat()
+                    
+                    return {
+                        "found": True,
+                        "match_type": "fallback_original",
+                        "asset": fallback_match,
+                        "note": f"Content generation failed, returning original style for asset code '{code}'. Error: {str(gen_error)}"
+                    }
         
         # No match found at all (neither specific combination nor original style)
         logger.info(f"No asset found for code={code} (neither specific combination nor original style)")
