@@ -1,25 +1,26 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from .config import settings
+# MongoDB-compatible database module
+# This module provides compatibility functions for existing SQLAlchemy imports
+# while using MongoDB as the actual database
 
-# Create database engine
-engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {}
-)
+from .mongodb import get_database
+import logging
 
-# Create SessionLocal class
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+logger = logging.getLogger(__name__)
 
-# Create Base class
-Base = declarative_base()
+# Create a dummy Base class for compatibility with existing models
+class Base:
+    """Dummy Base class for compatibility with SQLAlchemy models"""
+    pass
 
-
-# Dependency to get database session
+# Dependency to get database (MongoDB)
 def get_db():
-    db = SessionLocal()
+    """Get MongoDB database instance"""
     try:
+        db = get_database()
+        if db is None:
+            logger.error("Database not connected")
+            return None
         yield db
-    finally:
-        db.close()
+    except Exception as e:
+        logger.error(f"Error getting database: {e}")
+        yield None
