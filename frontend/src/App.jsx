@@ -27,7 +27,7 @@ function App() {
   }, [location.pathname]);
 
   return (
-    <div className="App">
+    <div className="min-h-screen bg-background">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="login" element={<Login />} />

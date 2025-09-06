@@ -3,6 +3,25 @@ import { getPersonalizedAsset } from "../services/api";
 import MarkdownPreview from "@uiw/react-markdown-preview";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
+import {
+  FileText,
+  X,
+  Sparkles,
+  RefreshCw,
+  ArrowRight,
+  BookOpen,
+  Target,
+  BarChart3,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  Globe,
+  Heart,
+} from "lucide-react";
+import { Badge } from "./ui/badge";
 
 const preprocessMarkdown = (markdown) => {
   if (!markdown) return "";
@@ -16,28 +35,8 @@ const preprocessMarkdown = (markdown) => {
 };
 
 /**
- * @typedef {Object} Asset
- * @property {string} _id - Unique identifier for the asset
- * @property {string} [$oid] - Alternative unique identifier (MongoDB ObjectId format)
- * @property {string} name - Display name of the asset
- * @property {string} style - Style variant of the asset (e.g., "original")
- * @property {string} content - HTML string content to be displayed
- * @property {string} code - Asset code identifier
- * @property {string} language - Language code (e.g., "en")
- * @property {string} domain - Subject domain (e.g., "General")
- * @property {string} hobby - Associated hobby or interest (e.g., "Learning")
- */
-
-/**
  * AssetView component to display asset content in HTML format
- * @param {Object} props - Component props
- * @param {Asset|null} props.asset - The selected asset object containing content field with HTML string
- * @param {Function} props.onClose - Function to close the asset view
- * @param {Function} props.handleNextClick - Function to handle the next click
- * @param {boolean} props.isGeneratingQuiz - Whether a quiz is being generated
- * @param {string|null} props.quizGenerationError - Error message from quiz generation
  */
-
 function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, quizGenerationError = null }) {
   const [isGeneratingPersonalized, setIsGeneratingPersonalized] = useState(false);
   const [personalizedContent, setPersonalizedContent] = useState(null);
@@ -87,153 +86,182 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
 
   if (!asset) {
     return (
-      <div className="flex-1 py-8 rounded-md">
-        <div className="card p-8 text-center">
-          <div className="mb-4">
-            <span className="text-6xl">📖</span>
+      <div className="flex-1">
+        <Card className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <BookOpen className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">Welcome to Your Learning Journey</h2>
-          <p className="text-muted text-lg mb-6">Select a lesson from the course outline to begin learning</p>
-          <div className="flex justify-center space-x-4">
-            <div className="text-center">
-              <div className="bg-accent-100 text-accent p-3 rounded-full inline-block mb-2">✅</div>
-              <p className="text-sm text-muted">Track Progress</p>
+
+          <div className="space-y-4">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Welcome to Your Learning Journey
+            </CardTitle>
+            <p className="text-muted-foreground text-lg max-w-md">
+              Select a lesson from the course outline to begin learning
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6 pt-4">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-6 h-6 text-accent" />
+              </div>
+              <p className="text-sm font-medium">Track Progress</p>
             </div>
-            <div className="text-center">
-              <div className="bg-primary-100 text-primary p-3 rounded-full inline-block mb-2">🎯</div>
-              <p className="text-sm text-muted">Personalized Content</p>
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                <Target className="w-6 h-6 text-primary" />
+              </div>
+              <p className="text-sm font-medium">Personalized Content</p>
             </div>
-            <div className="text-center">
-              <div className="bg-secondary-100 text-secondary p-3 rounded-full inline-block mb-2">📊</div>
-              <p className="text-sm text-muted">Analytics & Insights</p>
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mx-auto">
+                <BarChart3 className="w-6 h-6 text-secondary" />
+              </div>
+              <p className="text-sm font-medium">Analytics & Insights</p>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 my-8 flex flex-col rounded-xl shadow-lg">
-      {/* Asset Header */}
-      <div className="bg-surface border-b border-theme p-4 shadow-sm rounded-t-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-primary-100 text-primary p-2 rounded-lg">📄</div>
-            <div>
-              <h1 className="text-xl font-bold text-primary">{asset.name}</h1>
-              {/* <div className="flex items-center space-x-2 text-sm text-muted mb-1">
-                <span>ID: {(asset._id || asset.$oid)?.substring(0, 8) || "N/A"}</span>
-                {asset.code && <span>Code: {asset.code.substring(0, 8)}</span>}
-                {asset.language && (
-                  <span className="bg-purple-50 text-purple-600 px-2 py-0.5 rounded">
-                    🌍 {asset.language.toUpperCase()}
-                  </span>
-                )}
+    <div className="flex-1 flex flex-col">
+      <Card className="flex-1 flex flex-col shadow-lg">
+        {/* Asset Header */}
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-primary" />
               </div>
-              <div className="flex items-center space-x-2 text-sm text-muted">
-                {asset.domain && (
-                  <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded">🎯 {asset.domain}</span>
-                )}
-                {asset.hobby && (
-                  <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded">❤️ {asset.hobby}</span>
-                )}
-                {asset.style && <span className="bg-gray-50 text-gray-600 px-2 py-0.5 rounded">✨ {asset.style}</span>}
-              </div> */}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-surface-secondary rounded-lg transition-colors text-muted hover:text-primary"
-            title="Close asset view"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Asset Content */}
-
-      <div className="flex-1 overflow-y-auto bg-white shadow-sm border-b border-gray-200 py-4 px-8">
-        {personalizedContent?.asset?.content && personalizedContent?.match_type === "exact" ? (
-          <div>
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <span className="text-blue-400">✨</span>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    <strong>Personalized Content:</strong> Generated based on your preferences
-                  </p>
+              <div className="space-y-2">
+                <CardTitle className="text-xl font-bold text-primary">{asset.name}</CardTitle>
+                Metadata badges - uncomment if needed
+                <div className="flex items-center gap-2 text-sm">
+                  {asset.language && (
+                    <Badge variant="outline" className="gap-1">
+                      <Globe className="w-3 h-3" />
+                      {asset.language.toUpperCase()}
+                    </Badge>
+                  )}
+                  {asset.domain && (
+                    <Badge variant="outline" className="gap-1">
+                      <Target className="w-3 h-3" />
+                      {asset.domain}
+                    </Badge>
+                  )}
+                  {asset.hobby && (
+                    <Badge variant="outline" className="gap-1">
+                      <Heart className="w-3 h-3" />
+                      {asset.hobby}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
-            <MarkdownPreview
-              source={preprocessMarkdown(personalizedContent.asset.content)}
-              remarkPlugins={[remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              wrapperElement={{
-                "data-color-mode": "light",
-              }}
-              style={{ fontSize: "12px" }}
-              className={"*:!text-base *:text-justify *:[word-spacing:-1px]"}
-            />
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          asset.content && <div dangerouslySetInnerHTML={{ __html: asset.content }}></div>
-        )}
-      </div>
+        </CardHeader>
 
-      {/* Action Bar */}
-      <div className="bg-surface border-t border-theme p-4 rounded-b-xl">
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-2">
-            <button
-              className={`btn-outline text-sm ${isGeneratingPersonalized ? "opacity-50 cursor-not-allowed" : ""}`}
-              onClick={handleGeneratePersonalizedContent}
-              disabled={isGeneratingPersonalized}
-            >
-              {isGeneratingPersonalized ? (
-                <>
-                  <span className="inline-block animate-spin mr-2">⟳</span>
-                  Generating...
-                </>
-              ) : (
-                "Generate Personalised Content"
-              )}
-            </button>
-            {personalizedContent && (
-              <button className="btn-outline text-sm" onClick={() => setPersonalizedContent(null)}>
-                Show Original
-              </button>
+        {/* Asset Content */}
+        <CardContent className="flex-1 overflow-y-auto p-0">
+          <div className="p-6 space-y-4">
+            {personalizedContent?.asset?.content && personalizedContent?.match_type === "generated" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-primary">Personalized Content</p>
+                    <p className="text-xs text-muted-foreground">Generated based on your preferences</p>
+                  </div>
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  <MarkdownPreview
+                    source={preprocessMarkdown(personalizedContent.asset.content)}
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    wrapperElement={{
+                      "data-color-mode": "light",
+                    }}
+                    className="text-sm leading-relaxed"
+                  />
+                </div>
+              </div>
+            ) : (
+              asset.content && (
+                <div
+                  className="prose prose-sm max-w-none text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: asset.content }}
+                />
+              )
             )}
           </div>
-          <div className="flex flex-col space-y-2">
-            {quizGenerationError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-                <span className="font-semibold">Quiz Generation Error:</span> {quizGenerationError}
-              </div>
-            )}
-            <div className="flex space-x-2">
-              <button
-                className={`btn-primary text-sm min-w-40 ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={handleNextClick}
-                disabled={isGeneratingQuiz}
+        </CardContent>
+
+        <Separator />
+
+        {/* Action Bar */}
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGeneratePersonalizedContent}
+                disabled={isGeneratingPersonalized}
+                className="gap-2"
               >
+                {isGeneratingPersonalized ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate Personalized Content
+                  </>
+                )}
+              </Button>
+
+              {personalizedContent && (
+                <Button variant="outline" size="sm" onClick={() => setPersonalizedContent(null)} className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Show Original
+                </Button>
+              )}
+            </div>
+
+            <div className="flex flex-col items-end gap-2">
+              {quizGenerationError && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-semibold">Quiz Error:</span>
+                  <span>{quizGenerationError}</span>
+                </div>
+              )}
+
+              <Button onClick={handleNextClick} disabled={isGeneratingQuiz} className="gap-2 min-w-[120px]">
                 {isGeneratingQuiz ? (
                   <>
-                    <span className="animate-spin mr-1">⏳</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Generating Quiz...
                   </>
                 ) : (
-                  "Next"
+                  <>
+                    Next
+                    <ArrowRight className="w-4 h-4" />
+                  </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

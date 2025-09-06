@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Progress } from "./ui/progress";
+import { Badge } from "./ui/badge";
+import { Separator } from "./ui/separator";
+import { CheckCircle, XCircle, Trophy, ArrowRight, FileText } from "lucide-react";
+import { cn } from "../libs/utils";
 
 /**
  * QuizPopup component for displaying quiz questions one at a time
@@ -30,6 +37,7 @@ function QuizPopup({ quiz, isOpen, onClose }) {
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
+  const progress = ((currentQuestionIndex + (showResult ? 1 : 0)) / quiz.questions.length) * 100;
 
   const handleAnswerSelect = (answerIndex) => {
     if (!showResult) {
@@ -89,141 +97,150 @@ function QuizPopup({ quiz, isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">📝 Quiz</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Question {currentQuestionIndex + 1} of {quiz.questions.length}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600">
-              Score: {score}/{currentQuestionIndex + (showResult ? 1 : 0)}
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">Quiz</DialogTitle>
+                <DialogDescription>
+                  Question {currentQuestionIndex + 1} of {quiz.questions.length}
+                </DialogDescription>
+              </div>
             </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              title="Close Quiz"
-            >
-              <span className="text-2xl">×</span>
-            </button>
+            <div className="flex items-center gap-4">
+              <Badge variant="tertiary" className="text-sm">
+                Score: {score}/{currentQuestionIndex + (showResult ? 1 : 0)}
+              </Badge>
+            </div>
           </div>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="px-6 pt-4">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${((currentQuestionIndex + (showResult ? 1 : 0)) / quiz.questions.length) * 100}%`,
-              }}
-            />
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">{Math.round(progress)}% Complete</p>
           </div>
-        </div>
+        </DialogHeader>
+
+        <Separator />
 
         {/* Question Content */}
-        <div className="p-6">
+        <div className="space-y-6">
           {/* Question */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 leading-relaxed">{currentQuestion.question}</h3>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold leading-relaxed text-foreground">{currentQuestion.question}</h3>
           </div>
 
           {/* Answer Options */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3">
             {currentQuestion.options.map((option, index) => {
-              let buttonClass = "w-full p-4 text-left border rounded-lg transition-all duration-200 ";
+              let buttonVariant = "outline";
+              let buttonClassName = "w-full p-4 text-left justify-start h-auto transition-all duration-200";
+              let iconElement = null;
 
               if (showResult) {
                 if (index === currentQuestion.correct_answer) {
                   // Correct answer - always green
-                  buttonClass += "bg-green-100 border-green-500 text-green-800";
+                  buttonClassName = cn(buttonClassName, "quiz-option-correct border-green-500");
+                  iconElement = <CheckCircle className="w-5 h-5 text-green-600" />;
                 } else if (index === selectedAnswer && selectedAnswer !== currentQuestion.correct_answer) {
                   // Wrong selected answer - red
-                  buttonClass += "bg-red-100 border-red-500 text-red-800";
+                  buttonClassName = cn(buttonClassName, "quiz-option-incorrect border-red-500");
+                  iconElement = <XCircle className="w-5 h-5 text-red-600" />;
                 } else {
                   // Other options - neutral
-                  buttonClass += "bg-gray-50 border-gray-300 text-gray-600";
+                  buttonClassName = cn(buttonClassName, "quiz-option-neutral");
                 }
               } else {
                 // Before submission
                 if (selectedAnswer === index) {
-                  buttonClass += "bg-blue-100 border-blue-500 text-blue-800 font-medium";
+                  buttonClassName = cn(buttonClassName, "quiz-option-selected border-primary bg-primary/10");
+                  iconElement = <CheckCircle className="w-5 h-5 text-primary" />;
                 } else {
-                  buttonClass += "bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400";
+                  buttonClassName = cn(buttonClassName, "hover:bg-accent hover:text-accent-foreground");
                 }
               }
 
               return (
-                <button
+                <Button
                   key={index}
+                  variant={buttonVariant}
                   onClick={() => handleAnswerSelect(index)}
-                  className={buttonClass}
+                  className={buttonClassName}
                   disabled={showResult}
                 >
-                  <div className="flex items-center">
-                    <span className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center mr-3 text-sm font-semibold">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center text-sm font-semibold flex-shrink-0">
                       {String.fromCharCode(65 + index)}
-                    </span>
-                    <span>{option}</span>
+                    </div>
+                    <span className="flex-1 text-left">{option}</span>
+                    {iconElement && <div className="flex-shrink-0">{iconElement}</div>}
                   </div>
-                </button>
+                </Button>
               );
             })}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end items-center gap-3">
+          {/* Result Message & Action Buttons */}
+          <div className="flex items-center justify-end gap-4">
             {/* Result Message */}
             {showResult && (
               <div
-                className={`p-4 rounded-lg mr-auto ${
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2 rounded-lg border mr-auto",
                   isCorrect
-                    ? "bg-green-50 border border-green-200 text-green-800"
-                    : "bg-red-50 border border-red-200 text-red-800"
-                }`}
+                    ? "bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-100"
+                    : "bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-100"
+                )}
               >
-                <div className="flex items-center">
-                  <span className="text-2xl mr-3">{isCorrect ? "✅" : "❌"}</span>
-                  <div>
-                    <p className="font-semibold">{isCorrect ? "Correct!" : "Incorrect"}</p>
-                    {!isCorrect && (
-                      <p className="text-sm mt-1">
-                        The correct answer is:{" "}
-                        <strong>{currentQuestion.options[currentQuestion.correct_answer]}</strong>
-                      </p>
-                    )}
-                  </div>
+                <div className="flex-shrink-0">
+                  {isCorrect ? (
+                    <Trophy className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold">{isCorrect ? "Excellent!" : "Not quite right"}</p>
+                  {!isCorrect && (
+                    <p className="text-sm mt-1">
+                      The correct answer is: <strong>{currentQuestion.options[currentQuestion.correct_answer]}</strong>
+                    </p>
+                  )}
                 </div>
               </div>
             )}
-            {!showResult ? (
-              <button
-                onClick={handleSubmitAnswer}
-                disabled={selectedAnswer === null}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  selectedAnswer !== null
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                Submit Answer
-              </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg h-fit"
-              >
-                {isLastQuestion ? "Complete Quiz" : "Next Question →"}
-              </button>
-            )}
+
+            {/* Action Button */}
+            <div className="flex-shrink-0">
+              {!showResult ? (
+                <Button onClick={handleSubmitAnswer} disabled={selectedAnswer === null} className="min-w-[140px]">
+                  Submit Answer
+                </Button>
+              ) : (
+                <Button onClick={handleNext} className="min-w-[140px]">
+                  {isLastQuestion ? (
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4" />
+                      Complete Quiz
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      Next Question
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
