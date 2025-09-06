@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.api_v1.endpoints import users, items, auth, learning_resources, summary, users_collection
+from app.api.api_v1.endpoints import users, items, auth, learning_resources, summary, users_collection, content_transformer
 
 api_router = APIRouter()
 
@@ -9,3 +9,4 @@ api_router.include_router(items.router, prefix="/items", tags=["items"])
 api_router.include_router(learning_resources.router, prefix="/learning-resources", tags=["learning-resources"])
 api_router.include_router(summary.router, prefix="/summary", tags=["text-analysis"])
 api_router.include_router(users_collection.router, prefix="/users-collection", tags=["users-collection"])
+api_router.include_router(content_transformer.router, prefix="/content-transformer", tags=["content-transformer"])
