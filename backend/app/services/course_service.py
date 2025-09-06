@@ -89,7 +89,7 @@ class CourseService:
                 assets = []
                 
                 for asset_id in asset_ids:
-                    asset = await self.assets_collection.find_one({"_id": ObjectId(asset_id)})
+                    asset = await self.assets_collection.find_one({"code": ObjectId(asset_id)})
                     if asset:
                         asset["_id"] = str(asset["_id"])
                         # Convert ObjectId fields to strings
