@@ -1,13 +1,17 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "backend/Dockerfile"
+dockerfilePath = "backend/Dockerfile.railway"
 
 [deploy]
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 30
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10
+restartPolicyMaxRetries = 5
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers"
 
 [env]
 NODE_ENV = "production"
 PYTHONPATH = "/app"
+PORT = "8000"
+PYTHONUNBUFFERED = "1"
+ENVIRONMENT = "production"
