@@ -179,6 +179,30 @@ async def test_get_translations(asset_code: str):
         return {"error": str(e)}
 
 
+# Test endpoint for asset summary generation (no authentication)
+@app.post("/test-asset-summary")
+async def test_asset_summary(asset_id: str = Form(...)):
+    """Test endpoint for asset summary generation (no authentication)"""
+    try:
+        from app.core.mongodb import get_database
+        from app.services.asset_summary_service import AssetSummaryService
+        
+        db = get_database()
+        if db is None:
+            return {"error": "Database not connected"}
+        
+        asset_summary_service = AssetSummaryService(db)
+        updated_asset = await asset_summary_service.generate_and_update_summary(asset_id)
+        
+        if updated_asset:
+            return updated_asset
+        else:
+            return {"error": "Asset summary generation failed"}
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
