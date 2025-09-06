@@ -19,19 +19,12 @@ import { getPersonalizedAsset } from "../services/api";
  * @param {Object} props - Component props
  * @param {Asset|null} props.asset - The selected asset object containing content field with HTML string
  * @param {Function} props.onClose - Function to close the asset view
+ * @param {Function} props.handleNextClick - Function to handle the next click
+ * @param {boolean} props.isGeneratingQuiz - Whether a quiz is being generated
+ * @param {string|null} props.quizGenerationError - Error message from quiz generation
  */
 
-/**
- * Removes style tags and their content from HTML string
- * @param {string} html - The HTML string to process
- * @returns {string} - HTML string with style tags removed
- */
-function removeStyleTags(html) {
-  if (!html || typeof html !== "string") return html;
-  return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
-}
-
-function AssetView({ asset, onClose }) {
+function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, quizGenerationError = null }) {
   const [isGeneratingPersonalized, setIsGeneratingPersonalized] = useState(false);
   const [personalizedContent, setPersonalizedContent] = useState(null);
 
@@ -158,7 +151,7 @@ function AssetView({ asset, onClose }) {
                 </div>
               </div>
             </div>
-            <div dangerouslySetInnerHTML={{ __html: removeStyleTags(personalizedContent.content) }}></div>
+            <div dangerouslySetInnerHTML={{ __html: personalizedContent.content }}></div>
           </div>
         ) : (
           asset.content && <div dangerouslySetInnerHTML={{ __html: asset.content }}></div>
@@ -189,8 +182,28 @@ function AssetView({ asset, onClose }) {
               </button>
             )}
           </div>
-          <div className="flex space-x-2">
-            <button className="btn-primary text-sm">Mark as Complete</button>
+          <div className="flex flex-col space-y-2">
+            {quizGenerationError && (
+              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                <span className="font-semibold">Quiz Generation Error:</span> {quizGenerationError}
+              </div>
+            )}
+            <div className="flex space-x-2">
+              <button
+                className={`btn-primary text-sm ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
+                // onClick={handleNextClick}
+                disabled={isGeneratingQuiz}
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <span className="animate-spin mr-1">⏳</span>
+                    Generating Quiz...
+                  </>
+                ) : (
+                  "Next"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

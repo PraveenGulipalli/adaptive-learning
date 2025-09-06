@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourseAssets } from "../services/api";
+import { getCourseAssets, generateQuizzes } from "../services/api";
 import AssetView from "./AssetView";
 
 /**
@@ -108,7 +108,9 @@ function CourseTree({ course, isLoading, error, onAssetClick }) {
                       <div
                         key={asset._id || asset.$oid || assetIndex}
                         className="asset-item flex items-center cursor-pointer p-2 rounded-lg group"
-                        onClick={() => onAssetClick && onAssetClick(asset)}
+                        onClick={() =>
+                          onAssetClick && onAssetClick(asset, assetIndex === module.assets.length - 1, module)
+                        }
                       >
                         <div className="mr-3 p-1 rounded bg-secondary-50 group-hover:bg-secondary-100 transition-colors">
                           <span className="text-secondary text-sm">📄</span>
@@ -163,18 +165,72 @@ function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [isLastAssetInModule, setIsLastAssetInModule] = useState(undefined);
+  const [selectedModule, setSelectedModule] = useState(undefined);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [quizGenerationError, setQuizGenerationError] = useState(null);
 
   // Default course ID - you can make this dynamic based on user selection
   const defaultCourseId = "68bc14e817fa5a8d69dc67f5";
 
   // Handle asset selection
-  const handleAssetClick = (asset) => {
+  const handleAssetClick = (asset, isLastAssetInModule, module) => {
     setSelectedAsset(asset);
+    setIsLastAssetInModule(isLastAssetInModule);
+    setSelectedModule(module);
   };
 
   // Handle closing asset view
   const handleCloseAsset = () => {
     setSelectedAsset(null);
+  };
+
+  const handleNextClick = async () => {
+    if (isLastAssetInModule) {
+      console.log("Last asset in module - generating quiz");
+
+      try {
+        setIsGeneratingQuiz(true);
+        setQuizGenerationError(null);
+
+        // Generate quiz for the current module
+        const moduleCode = selectedModule.code || selectedModule._id || `module_${selectedModule.name}`;
+        const quizRequest = {
+          course_id: defaultCourseId,
+          module_code: moduleCode,
+          overwrite: false, // Don't overwrite existing quizzes
+          num_questions: 5, // Default number of questions
+          difficulty: "medium", // Default difficulty
+        };
+
+        const response = await generateQuizzes(quizRequest);
+
+        if (response.success) {
+          console.log("Quiz generated successfully:", response.message);
+          console.log("Generated quizzes:", response.generated_quizzes);
+
+          // You can show a success message or navigate to the quiz
+          // For now, we'll just log the success
+          alert(`Quiz generated successfully! ${response.message}`);
+        } else {
+          console.error("Quiz generation failed:", response.errors);
+          setQuizGenerationError(response.errors?.join(", ") || "Failed to generate quiz");
+        }
+      } catch (error) {
+        console.error("Error generating quiz:", error);
+        setQuizGenerationError(error.message || "Failed to generate quiz");
+      } finally {
+        setIsGeneratingQuiz(false);
+      }
+    } else {
+      const currentAssetIndex = selectedModule.assets.indexOf(selectedAsset);
+
+      handleAssetClick(
+        selectedModule.assets[currentAssetIndex + 1],
+        currentAssetIndex === selectedModule.assets.length - 2,
+        selectedModule
+      );
+    }
   };
 
   useEffect(() => {
@@ -230,7 +286,13 @@ function Home() {
         >
           <CourseTree course={courseData} isLoading={isLoading} error={error} onAssetClick={handleAssetClick} />
         </aside>
-        <AssetView asset={selectedAsset} onClose={handleCloseAsset} />
+        <AssetView
+          asset={selectedAsset}
+          onClose={handleCloseAsset}
+          handleNextClick={handleNextClick}
+          isGeneratingQuiz={isGeneratingQuiz}
+          quizGenerationError={quizGenerationError}
+        />
       </main>
     </>
   );

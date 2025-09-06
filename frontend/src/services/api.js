@@ -110,6 +110,51 @@ export const getCourseAssets = async (courseId) => {
   }
 };
 
+// Quiz API functions
+
+/**
+ * Generate quizzes for a course or specific module
+ * @param {Object} requestData - Quiz generation request data
+ * @param {string} requestData.course_id - MongoDB ObjectId of the course (required)
+ * @param {string} [requestData.module_code] - Module code reference (optional)
+ * @param {boolean} [requestData.overwrite] - Whether to overwrite existing quizzes (default: false)
+ * @param {number} [requestData.num_questions] - Number of questions per quiz (default: 5)
+ * @param {string} [requestData.difficulty] - Quiz difficulty level (easy/medium/hard)
+ * @returns {Promise} - Promise resolving to quiz generation response
+ */
+export const generateQuizzes = async (requestData) => {
+  try {
+    const response = await api.post("/quiz/generate", requestData);
+    return response.data;
+  } catch (error) {
+    console.error("Error generating quizzes:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get quizzes for a course
+ * @param {string} courseId - The course ID
+ * @param {string} [moduleCode] - Optional module code to filter by
+ * @param {number} [page] - Page number for pagination (default: 1)
+ * @param {number} [size] - Page size (default: 10)
+ * @returns {Promise} - Promise resolving to quiz list response
+ */
+export const getQuizzesByCourse = async (courseId, moduleCode = null, page = 1, size = 10) => {
+  try {
+    const params = { page, size };
+    if (moduleCode) {
+      params.module_code = moduleCode;
+    }
+
+    const response = await api.get(`/quiz/course/${courseId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+    throw error;
+  }
+};
+
 // Content Transformer API functions
 
 /**
