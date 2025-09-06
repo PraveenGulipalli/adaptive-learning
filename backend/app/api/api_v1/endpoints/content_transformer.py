@@ -724,6 +724,8 @@ Please provide ONLY the {style} output without any formatting or labels:"""
                             output = output[1:-1]
                     
                     # Insert the new generated content into assets collection
+                    from datetime import datetime
+                    
                     try:
                         code_as_objectid = ObjectId(code)
                     except Exception:
@@ -743,10 +745,16 @@ Please provide ONLY the {style} output without any formatting or labels:"""
                     result = await db["assets"].insert_one(new_asset_data)
                     new_asset_data["id"] = str(result.inserted_id)
                     new_asset_data["code"] = str(new_asset_data["code"])
+                    
+                    # Convert datetime fields to ISO format strings
                     if "created_at" in new_asset_data and hasattr(new_asset_data["created_at"], 'isoformat'):
                         new_asset_data["created_at"] = new_asset_data["created_at"].isoformat()
                     if "updated_at" in new_asset_data and hasattr(new_asset_data["updated_at"], 'isoformat'):
                         new_asset_data["updated_at"] = new_asset_data["updated_at"].isoformat()
+                    
+                    # Remove the _id field if it exists (we already have id)
+                    if "_id" in new_asset_data:
+                        del new_asset_data["_id"]
                     
                     logger.info(f"Successfully generated and inserted new {style} content for code={code}")
                     
