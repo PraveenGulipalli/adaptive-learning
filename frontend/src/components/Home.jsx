@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourseAssets, generateQuizzes } from "../services/api";
+import { getCourseAssets, generateQuizzes, getQuizzesByCourse } from "../services/api";
 import AssetView from "./AssetView";
 
 /**
@@ -187,38 +187,56 @@ function Home() {
 
   const handleNextClick = async () => {
     if (isLastAssetInModule) {
-      console.log("Last asset in module - generating quiz");
+      console.log("Last asset in module - checking for existing quiz");
 
       try {
         setIsGeneratingQuiz(true);
         setQuizGenerationError(null);
 
-        // Generate quiz for the current module
-        const moduleCode = selectedModule.code || selectedModule._id || `module_${selectedModule.name}`;
-        const quizRequest = {
-          course_id: defaultCourseId,
-          module_code: moduleCode,
-          overwrite: false, // Don't overwrite existing quizzes
-          num_questions: 5, // Default number of questions
-          difficulty: "medium", // Default difficulty
-        };
+        const moduleCode = selectedModule.code;
 
-        const response = await generateQuizzes(quizRequest);
+        // First, check if a quiz already exists for this module
+        console.log("Checking for existing quiz for module:", moduleCode);
+        const existingQuizzes = await getQuizzesByCourse(defaultCourseId, moduleCode);
 
-        if (response.success) {
-          console.log("Quiz generated successfully:", response.message);
-          console.log("Generated quizzes:", response.generated_quizzes);
+        if (existingQuizzes && existingQuizzes.quizzes && existingQuizzes.quizzes.length > 0) {
+          // Quiz already exists
+          console.log("Quiz already exists:", existingQuizzes.quizzes);
+          alert(
+            `Quiz already exists for this module! Found ${existingQuizzes.quizzes.length} quiz(s). You can take the quiz now.`
+          );
 
-          // You can show a success message or navigate to the quiz
-          // For now, we'll just log the success
-          alert(`Quiz generated successfully! ${response.message}`);
+          // In the future, you can navigate to the quiz page here
+          // For example: navigate(`/quiz/${existingQuizzes.quizzes[0]._id}`);
         } else {
-          console.error("Quiz generation failed:", response.errors);
-          setQuizGenerationError(response.errors?.join(", ") || "Failed to generate quiz");
+          // No quiz exists, generate a new one
+          console.log("No existing quiz found - generating new quiz");
+
+          const quizRequest = {
+            course_id: defaultCourseId,
+            module_code: moduleCode,
+            overwrite: false, // Don't overwrite existing quizzes
+            num_questions: 5, // Default number of questions
+            difficulty: "medium", // Default difficulty
+          };
+
+          const response = await generateQuizzes(quizRequest);
+
+          if (response.success) {
+            console.log("Quiz generated successfully:", response.message);
+            console.log("Generated quizzes:", response.generated_quizzes);
+
+            // You can show a success message or navigate to the quiz
+            // For now, we'll just log the success
+            alert(`Quiz generated successfully! ${response.message}`);
+          } else {
+            console.error("Quiz generation failed:", response.errors);
+            setQuizGenerationError(response.errors?.join(", ") || "Failed to generate quiz");
+          }
         }
       } catch (error) {
-        console.error("Error generating quiz:", error);
-        setQuizGenerationError(error.message || "Failed to generate quiz");
+        console.error("Error handling quiz:", error);
+        setQuizGenerationError(error.message || "Failed to handle quiz");
       } finally {
         setIsGeneratingQuiz(false);
       }
