@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # Google API
     google_api_key: str = ""
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Fallback to environment variable if not set in .env
+        if not self.google_api_key:
+            self.google_api_key = os.getenv("GOOGLE_API_KEY", "")
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
