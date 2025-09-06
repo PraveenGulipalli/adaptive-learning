@@ -653,6 +653,115 @@ async def get_asset(
             detail=f"Failed to retrieve asset: {str(e)}"
         )
 
+@router.put(
+    "/updateAsset",
+    summary="Update Asset Status",
+    description="Update the status of an asset by asset code."
+)
+async def update_asset(
+    assetCode: str,
+    status: str,
+    db=Depends(get_database)
+):
+    """
+    Update asset status by asset code.
+    
+    - **assetCode**: Asset code identifier
+    - **status**: New status for the asset ('not-started', 'in-progress', 'completed')
+    
+    Updates the status field for all assets matching the given asset code.
+    """
+    try:
+        from bson import ObjectId
+        from datetime import datetime
+        
+        # Validate status values
+        valid_statuses = ["not-started", "in-progress", "completed"]
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status '{status}'. Valid statuses are: {', '.join(valid_statuses)}"
+            )
+        
+        logger.info(f"Updating status for assetCode: {assetCode} to status: {status}")
+        
+        # Try to convert assetCode to ObjectId for search
+        search_conditions = []
+        
+        # Add both ObjectId and string versions of the code to search
+        try:
+            code_as_objectid = ObjectId(assetCode)
+            search_conditions.extend([
+                {"code": code_as_objectid},
+                {"code": assetCode}
+            ])
+        except Exception:
+            # If not a valid ObjectId, search as string only
+            search_conditions.append({"code": assetCode})
+        
+        updated_count = 0
+        updated_assets = []
+        
+        # Update all assets with matching asset code
+        for search_condition in search_conditions:
+            update_result = await db["assets"].update_many(
+                search_condition,
+                {
+                    "$set": {
+                        "status": status,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if update_result.modified_count > 0:
+                updated_count += update_result.modified_count
+                
+                # Get the updated assets for response
+                updated_assets_cursor = db["assets"].find(search_condition)
+                assets = await updated_assets_cursor.to_list(length=None)
+                
+                for asset in assets:
+                    asset["id"] = str(asset["_id"])
+                    del asset["_id"]
+                    if "code" in asset and hasattr(asset["code"], 'generation_time'):
+                        asset["code"] = str(asset["code"])
+                    if "created_at" in asset and hasattr(asset["created_at"], 'isoformat'):
+                        asset["created_at"] = asset["created_at"].isoformat()
+                    if "updated_at" in asset and hasattr(asset["updated_at"], 'isoformat'):
+                        asset["updated_at"] = asset["updated_at"].isoformat()
+                    
+                    updated_assets.append(asset)
+                
+                break  # Exit loop after first successful update
+        
+        if updated_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No assets found with assetCode: {assetCode}"
+            )
+        
+        logger.info(f"Successfully updated {updated_count} assets with assetCode: {assetCode}")
+        
+        return {
+            "success": True,
+            "message": f"Successfully updated {updated_count} asset(s) with assetCode: {assetCode}",
+            "assetCode": assetCode,
+            "newStatus": status,
+            "updatedCount": updated_count,
+            "updatedAssets": updated_assets,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating asset status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update asset status: {str(e)}"
+        )
+
 @router.get(
     "/health",
     summary="Content Transformer Health Check",
