@@ -25,8 +25,14 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     description: str = "A modern adaptive learning platform with FastAPI backend and React frontend"
     
-    # Google API
+    # LLM Configuration
     google_api_key: str = ""
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    default_llm_provider: str = "google"
+    default_llm_model: str = "gemini-1.5-flash"
+    max_tokens_default: int = 1000
+    temperature_default: float = 0.7
     
     class Config:
         env_file = ".env"
