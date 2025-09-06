@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCourseAssets, generateQuizzes, getQuizzesByCourse } from "../services/api";
 import AssetView from "./AssetView";
+import QuizPopup from "./QuizPopup";
 
 /**
  * CourseTree component to display hierarchical course structure
@@ -136,9 +137,9 @@ function CourseTree({ course, isLoading, error, onAssetClick }) {
                               </span>
                             )}
                           </div> */}
-                          <div className="text-xs text-muted font-mono mt-1">
+                          {/* <div className="text-xs text-muted font-mono mt-1">
                             ID: {(asset._id || asset.$oid)?.substring(0, 12) || "N/A"}...
-                          </div>
+                          </div> */}
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-xs text-accent bg-accent-50 px-2 py-1 rounded">→</span>
@@ -169,6 +170,8 @@ function Home() {
   const [selectedModule, setSelectedModule] = useState(undefined);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizGenerationError, setQuizGenerationError] = useState(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizData, setQuizData] = useState(null);
 
   // Default course ID - you can make this dynamic based on user selection
   const defaultCourseId = "68bc14e817fa5a8d69dc67f5";
@@ -185,33 +188,32 @@ function Home() {
     setSelectedAsset(null);
   };
 
+  // Handle closing quiz popup
+  const handleCloseQuiz = () => {
+    setShowQuiz(false);
+    setQuizData(null);
+  };
+
   const handleNextClick = async () => {
     if (isLastAssetInModule) {
-      console.log("Last asset in module - checking for existing quiz");
-
       try {
         setIsGeneratingQuiz(true);
         setQuizGenerationError(null);
 
         const moduleCode = selectedModule.code;
 
-        // First, check if a quiz already exists for this module
-        console.log("Checking for existing quiz for module:", moduleCode);
         const existingQuizzes = await getQuizzesByCourse(defaultCourseId, moduleCode);
 
         if (existingQuizzes && existingQuizzes.quizzes && existingQuizzes.quizzes.length > 0) {
-          // Quiz already exists
-          console.log("Quiz already exists:", existingQuizzes.quizzes);
-          alert(
-            `Quiz already exists for this module! Found ${existingQuizzes.quizzes.length} quiz(s). You can take the quiz now.`
-          );
+          const firstQuiz = existingQuizzes.quizzes[0];
 
-          // In the future, you can navigate to the quiz page here
-          // For example: navigate(`/quiz/${existingQuizzes.quizzes[0]._id}`);
+          if (firstQuiz && firstQuiz.questions && firstQuiz.questions.length > 0) {
+            setQuizData(firstQuiz);
+            setShowQuiz(true);
+          } else {
+            alert("Quiz found but no questions available.");
+          }
         } else {
-          // No quiz exists, generate a new one
-          console.log("No existing quiz found - generating new quiz");
-
           const quizRequest = {
             course_id: defaultCourseId,
             module_code: moduleCode,
@@ -223,12 +225,18 @@ function Home() {
           const response = await generateQuizzes(quizRequest);
 
           if (response.success) {
-            console.log("Quiz generated successfully:", response.message);
-            console.log("Generated quizzes:", response.generated_quizzes);
-
-            // You can show a success message or navigate to the quiz
-            // For now, we'll just log the success
-            alert(`Quiz generated successfully! ${response.message}`);
+            // Open quiz popup with the generated quiz
+            if (response.generated_quizzes && response.generated_quizzes.length > 0) {
+              const newQuiz = response.generated_quizzes[0];
+              if (newQuiz && newQuiz.questions && newQuiz.questions.length > 0) {
+                setQuizData(newQuiz);
+                setShowQuiz(true);
+              } else {
+                alert("Quiz generated but no questions available.");
+              }
+            } else {
+              alert(`Quiz generated successfully! ${response.message}`);
+            }
           } else {
             console.error("Quiz generation failed:", response.errors);
             setQuizGenerationError(response.errors?.join(", ") || "Failed to generate quiz");
@@ -285,10 +293,10 @@ function Home() {
         className="fixed top-0 w-full shadow-lg z-50"
         style={{ backgroundColor: "var(--header-bg)", boxShadow: "0 4px 6px var(--header-shadow)" }}
       >
-        <div className="flex justify-center items-center h-20 text-2xl font-bold app-container relative">
+        <div className="flex justify-between items-center h-20 text-2xl font-bold app-container relative">
           <span className="gradient-primary text-white px-4 py-2 rounded-lg">🎓 Adaptive Learning</span>
           <button
-            className="absolute right-5 h-10 flex items-center outline outline-1 px-4 rounded-md text-base"
+            className="h-10 flex items-center outline outline-1 px-4 rounded-md text-base"
             onClick={() => {
               navigate("/update-preference");
             }}
@@ -297,9 +305,12 @@ function Home() {
           </button>
         </div>
       </header>
-      <main className="pt-20 flex w-full min-h-screen app-container" style={{ backgroundColor: "var(--background)" }}>
+      <main
+        className="pt-20 flex w-full gap-8 min-h-screen app-container"
+        style={{ backgroundColor: "var(--background)" }}
+      >
         <aside
-          className="w-80 shadow-lg overflow-y-auto"
+          className="w-80 shadow-lg my-8 rounded-xl overflow-y-auto"
           style={{ backgroundColor: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)" }}
         >
           <CourseTree course={courseData} isLoading={isLoading} error={error} onAssetClick={handleAssetClick} />
@@ -312,6 +323,7 @@ function Home() {
           quizGenerationError={quizGenerationError}
         />
       </main>
+      <QuizPopup quiz={quizData} isOpen={showQuiz} onClose={handleCloseQuiz} />
     </>
   );
 }

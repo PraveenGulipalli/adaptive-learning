@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getPersonalizedAsset } from "../services/api";
 import MarkdownPreview from "@uiw/react-markdown-preview";
 import remarkMath from "remark-math";
@@ -42,6 +42,10 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
   const [isGeneratingPersonalized, setIsGeneratingPersonalized] = useState(false);
   const [personalizedContent, setPersonalizedContent] = useState(null);
 
+  useEffect(() => {
+    setPersonalizedContent(null);
+  }, [asset]);
+
   /**
    * Handles the generation of personalized content
    */
@@ -83,7 +87,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
 
   if (!asset) {
     return (
-      <div className="flex-1 p-8">
+      <div className="flex-1 py-8 rounded-md">
         <div className="card p-8 text-center">
           <div className="mb-4">
             <span className="text-6xl">📖</span>
@@ -110,9 +114,9 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
   }
 
   return (
-    <div className="flex-1 p-8 flex flex-col">
+    <div className="flex-1 my-8 flex flex-col rounded-xl shadow-lg">
       {/* Asset Header */}
-      <div className="bg-surface border-b border-theme p-4 shadow-sm">
+      <div className="bg-surface border-b border-theme p-4 shadow-sm rounded-t-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-primary-100 text-primary p-2 rounded-lg">📄</div>
@@ -150,7 +154,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
 
       {/* Asset Content */}
 
-      <div className="flex-1 overflow-y-auto bg-white shadow-sm border border-gray-200 p-4">
+      <div className="flex-1 overflow-y-auto bg-white shadow-sm border-b border-gray-200 py-4 px-8">
         {personalizedContent?.asset?.content && personalizedContent?.match_type === "exact" ? (
           <div>
             <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
@@ -182,7 +186,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
       </div>
 
       {/* Action Bar */}
-      <div className="bg-surface border-t border-theme p-4">
+      <div className="bg-surface border-t border-theme p-4 rounded-b-xl">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">
             <button
@@ -213,7 +217,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
             )}
             <div className="flex space-x-2">
               <button
-                className={`btn-primary text-sm ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`btn-primary text-sm min-w-40 ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={handleNextClick}
                 disabled={isGeneratingQuiz}
               >
