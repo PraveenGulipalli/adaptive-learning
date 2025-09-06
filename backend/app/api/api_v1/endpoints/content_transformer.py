@@ -78,7 +78,7 @@ async def transform_content(request: ContentTransformerRequest, db=Depends(get_d
 - Convert the content into simple, symbolic visual representations (emoji flows, ASCII diagrams, metaphors).
 - Focus on clarity, simplicity, and instant understanding at a glance.
 - Provide 3–4 different cues for the same concept.
-- Each visual cue must connect the concept to the user’s domain and hobby.
+- Each visual cue must connect the concept to the user's domain and hobby.
 - Use emojis, arrows, or short symbolic flows instead of long text.
 - Keep it fun, relatable, and visually intuitive.
 
@@ -94,11 +94,21 @@ VISUAL CUE 4: [Optional extra if needed]
 - Keep it framed in the context of the given domain and hobby.
 - Make it clear, informative, and easy to understand.
 - Use analogies from the hobby to explain domain concepts.
+""",
+            "original": """
+### Original Mode:
+- Return the content as-is without any transformation.
+- This is the original learning material in its basic form.
+- No domain or hobby contextualization needed.
 """
         }
         
-        # Create the AI prompt based on selected style
-        prompt = f"""You are an AI content transformer. 
+        # Handle original style without AI transformation
+        if request.style == "original":
+            output = request.content
+        else:
+            # Create the AI prompt based on selected style
+            prompt = f"""You are an AI content transformer. 
 You will receive four inputs:
 1. Style (storytelling, visual_cue, or summary)
 2. Content (raw lecture, case study, or concept)
@@ -138,17 +148,17 @@ Now transform this content in {request.style} style:
 
 Please provide ONLY the {request.style} output without any formatting or labels:"""
 
-        # Generate response using Google Generative AI
-        response = model.generate_content(prompt)
-        
-        if not response.text:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate content transformation"
-            )
-        
-        # Parse the response - since we asked for only the output, use it directly
-        output = response.text.strip()
+            # Generate response using Google Generative AI
+            response = model.generate_content(prompt)
+            
+            if not response.text:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to generate content transformation"
+                )
+            
+            # Parse the response - since we asked for only the output, use it directly
+            output = response.text.strip()
         
         # Clean up any unwanted formatting
         if output.startswith('"') and output.endswith('"'):
@@ -534,6 +544,223 @@ async def get_all_transformed_assets(db=Depends(get_database)):
             detail=f"Failed to fetch transformed assets: {str(e)}"
         )
 
+
+@router.get(
+    "/getAsset",
+    summary="Get Asset with Default Original Fallback", 
+    description="Get asset by code, domain, hobby, and style. Automatically returns original style for the asset code if specific combination not found."
+)
+async def get_asset(
+    code: str,
+    domain: str,
+    hobby: str,
+    style: str,
+    db=Depends(get_database)
+):
+    """
+    Get asset with specific combination, automatically returns original style if not found.
+    
+    - **code**: Asset code identifier
+    - **domain**: Domain context (e.g., medical, engineering student)  
+    - **hobby**: Hobby context (e.g., movies, gaming, cricket)
+    - **style**: Transformation style (visual_cue, storytelling, summary)
+    
+    Returns the matching asset or automatically returns the original style record for the given asset code.
+    """
+    try:
+        from bson import ObjectId
+        
+        logger.info(f"Searching for asset: code={code}, domain={domain}, hobby={hobby}, style={style}")
+        
+        # Try to convert code to ObjectId for search
+        search_conditions = []
+        
+        # Add both ObjectId and string versions of the code to search
+        try:
+            code_as_objectid = ObjectId(code)
+            search_conditions.extend([
+                {"code": code_as_objectid},
+                {"code": code}
+            ])
+        except Exception:
+            # If not a valid ObjectId, search as string only
+            search_conditions.append({"code": code})
+        
+        # First, try to find exact match with domain, hobby, and style
+        for search_condition in search_conditions:
+            exact_match = await db["assets"].find_one({
+                **search_condition,
+                "domain": domain,
+                "hobby": hobby,
+                "style": style
+            })
+            
+            if exact_match:
+                logger.info(f"Found exact match for code={code}, style={style}")
+                # Convert ObjectId fields to strings for JSON response
+                exact_match["id"] = str(exact_match["_id"])
+                del exact_match["_id"]
+                if "code" in exact_match and hasattr(exact_match["code"], 'generation_time'):
+                    exact_match["code"] = str(exact_match["code"])
+                if "created_at" in exact_match and hasattr(exact_match["created_at"], 'isoformat'):
+                    exact_match["created_at"] = exact_match["created_at"].isoformat()
+                
+                return {
+                    "found": True,
+                    "match_type": "exact",
+                    "asset": exact_match
+                }
+        
+        # If no exact match found, always try to find original style record for the given asset code
+        logger.info(f"No exact match found, searching for original style: code={code}, style=original")
+        
+        for search_condition in search_conditions:
+            fallback_match = await db["assets"].find_one({
+                **search_condition,
+                "style": "original"
+            })
+            
+            if fallback_match:
+                logger.info(f"Found original style record for code={code}")
+                # Convert ObjectId fields to strings for JSON response
+                fallback_match["id"] = str(fallback_match["_id"])
+                del fallback_match["_id"]
+                if "code" in fallback_match and hasattr(fallback_match["code"], 'generation_time'):
+                    fallback_match["code"] = str(fallback_match["code"])
+                if "created_at" in fallback_match and hasattr(fallback_match["created_at"], 'isoformat'):
+                    fallback_match["created_at"] = fallback_match["created_at"].isoformat()
+                
+                return {
+                    "found": True,
+                    "match_type": "default_original",
+                    "asset": fallback_match,
+                    "note": f"No specific match found for domain='{domain}', hobby='{hobby}', style='{style}'. Returning default original content for asset code '{code}'."
+                }
+        
+        # No match found at all (neither specific combination nor original style)
+        logger.info(f"No asset found for code={code} (neither specific combination nor original style)")
+        return {
+            "found": False,
+            "match_type": "none",
+            "asset": None,
+            "message": f"No asset found with code='{code}'. Neither the specific combination (domain='{domain}', hobby='{hobby}', style='{style}') nor the default original style exists."
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in get_asset: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve asset: {str(e)}"
+        )
+
+@router.put(
+    "/updateAsset",
+    summary="Update Asset Status",
+    description="Update the status of an asset by asset code."
+)
+async def update_asset(
+    assetCode: str,
+    status: str,
+    db=Depends(get_database)
+):
+    """
+    Update asset status by asset code.
+    
+    - **assetCode**: Asset code identifier
+    - **status**: New status for the asset ('not-started', 'in-progress', 'completed')
+    
+    Updates the status field for all assets matching the given asset code.
+    """
+    try:
+        from bson import ObjectId
+        from datetime import datetime
+        
+        # Validate status values
+        valid_statuses = ["not-started", "in-progress", "completed"]
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status '{status}'. Valid statuses are: {', '.join(valid_statuses)}"
+            )
+        
+        logger.info(f"Updating status for assetCode: {assetCode} to status: {status}")
+        
+        # Try to convert assetCode to ObjectId for search
+        search_conditions = []
+        
+        # Add both ObjectId and string versions of the code to search
+        try:
+            code_as_objectid = ObjectId(assetCode)
+            search_conditions.extend([
+                {"code": code_as_objectid},
+                {"code": assetCode}
+            ])
+        except Exception:
+            # If not a valid ObjectId, search as string only
+            search_conditions.append({"code": assetCode})
+        
+        updated_count = 0
+        updated_assets = []
+        
+        # Update all assets with matching asset code
+        for search_condition in search_conditions:
+            update_result = await db["assets"].update_many(
+                search_condition,
+                {
+                    "$set": {
+                        "status": status,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if update_result.modified_count > 0:
+                updated_count += update_result.modified_count
+                
+                # Get the updated assets for response
+                updated_assets_cursor = db["assets"].find(search_condition)
+                assets = await updated_assets_cursor.to_list(length=None)
+                
+                for asset in assets:
+                    asset["id"] = str(asset["_id"])
+                    del asset["_id"]
+                    if "code" in asset and hasattr(asset["code"], 'generation_time'):
+                        asset["code"] = str(asset["code"])
+                    if "created_at" in asset and hasattr(asset["created_at"], 'isoformat'):
+                        asset["created_at"] = asset["created_at"].isoformat()
+                    if "updated_at" in asset and hasattr(asset["updated_at"], 'isoformat'):
+                        asset["updated_at"] = asset["updated_at"].isoformat()
+                    
+                    updated_assets.append(asset)
+                
+                break  # Exit loop after first successful update
+        
+        if updated_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No assets found with assetCode: {assetCode}"
+            )
+        
+        logger.info(f"Successfully updated {updated_count} assets with assetCode: {assetCode}")
+        
+        return {
+            "success": True,
+            "message": f"Successfully updated {updated_count} asset(s) with assetCode: {assetCode}",
+            "assetCode": assetCode,
+            "newStatus": status,
+            "updatedCount": updated_count,
+            "updatedAssets": updated_assets,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating asset status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update asset status: {str(e)}"
+        )
 
 @router.get(
     "/health",
