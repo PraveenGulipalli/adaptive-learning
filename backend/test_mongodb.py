@@ -9,11 +9,16 @@ from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 def test_mongodb_connection():
     """Test MongoDB connection"""
-    # Get connection string from environment or use default
-    connection_string = os.getenv('DATABASE_URL', 'mongodb+srv://admin:admin@cluster0.8sxog.mongodb.net/?retryWrites=true&w=majority')
+    # Get connection string from environment variable only
+    connection_string = os.getenv('DATABASE_URL')
+    
+    if not connection_string:
+        print("❌ DATABASE_URL environment variable not set!")
+        print("   Please set DATABASE_URL in your .env file")
+        return False
     
     print(f"Testing MongoDB connection...")
-    print(f"Connection string: {connection_string[:50]}...")
+    print(f"Connection string: mongodb+srv://***:***@{connection_string.split('@')[1] if '@' in connection_string else 'hidden'}...")
     
     try:
         # Create client with timeout

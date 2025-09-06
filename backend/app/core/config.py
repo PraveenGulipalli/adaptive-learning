@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     max_tokens_default: int = 1000
     temperature_default: float = 0.7
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Fallback to environment variable if not set in .env
+        if not self.google_api_key:
+            self.google_api_key = os.getenv("GOOGLE_API_KEY", "")
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
