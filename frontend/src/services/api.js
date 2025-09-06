@@ -2,10 +2,19 @@ import axios from "axios";
 
 // Base URL configuration - uses environment variable or defaults to localhost
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_ROOT_URL = process.env.REACT_APP_API_ROOT_URL || "http://localhost:8000";
 
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Create axios instance for course endpoints (different base URL)
+const courseApi = axios.create({
+  baseURL: API_ROOT_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -84,5 +93,23 @@ export const updateUserPreferences = async (userId, updateData) => {
   }
 };
 
-// Export the axios instance for additional custom requests if needed
+// Course API functions
+
+/**
+ * Get course assets by course ID
+ * @param {string} courseId - The course ID
+ * @returns {Promise} - Promise resolving to course assets data
+ */
+export const getCourseAssets = async (courseId) => {
+  try {
+    const response = await courseApi.get(`/course/${courseId}/assets`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching course assets:", error);
+    throw error;
+  }
+};
+
+// Export the axios instances for additional custom requests if needed
+export { courseApi };
 export default api;
