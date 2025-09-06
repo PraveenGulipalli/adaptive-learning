@@ -11,21 +11,31 @@ from app.api.api_v1.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup - try to connect to MongoDB but don't fail if unavailable
+    # Set up MongoDB connection
+    db = None
     try:
-        await connect_to_mongo()
-        print("✅ MongoDB connected successfully")
+        db = await connect_to_mongo()
+        if db is None:
+            print("⚠️ MongoDB connection failed or not configured")
+            print("🚀 Starting without MongoDB (some features may be limited)")
+        else:
+            print("✅ MongoDB connected successfully")
     except Exception as e:
-        print(f"⚠️ MongoDB connection failed: {e}")
+        print(f"⚠️ Error during MongoDB connection: {e}")
         print("🚀 Starting without MongoDB (some features may be limited)")
+    
+    # Store database connection in app state
+    app.state.db = db
     
     yield
     
-    # Shutdown
+    # Cleanup on shutdown
     try:
-        await close_mongo_connection()
+        if mongodb.client:
+            await close_mongo_connection()
+            print("✅ MongoDB connection closed")
     except Exception as e:
-        print(f"MongoDB disconnect error: {e}")
+        print(f"⚠️ Error closing MongoDB connection: {e}")
 
 
 # Create FastAPI app
@@ -72,14 +82,28 @@ async def root():
     }
 
 
-# Health check endpoint (simplified for deployment)
+# Health check endpoint with MongoDB status
 @app.get("/health")
 async def health_check():
+    """Health check endpoint for load balancers and monitoring"""
+    db_status = "unavailable"
+    
+    # Check MongoDB connection if it was initialized
+    if mongodb.client:
+        try:
+            await mongodb.client.admin.command('ping')
+            db_status = "connected"
+        except Exception as e:
+            db_status = f"error: {str(e)}"
+    
     return {
-        "status": "healthy", 
-        "timestamp": time.time(),
-        "service": "adaptive-learning-backend"
+        "status": "healthy",
+        "service": "adaptive-learning-backend",
+        "version": settings.version,
+        "environment": settings.environment,
+        "database": db_status
     }
+
 
 # Detailed health check with MongoDB (optional)
 @app.get("/health/detailed")
