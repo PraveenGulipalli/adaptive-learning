@@ -1,5 +1,19 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { getPersonalizedAsset } from "../services/api";
+import MarkdownPreview from "@uiw/react-markdown-preview";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+
+const preprocessMarkdown = (markdown) => {
+  if (!markdown) return "";
+  // Replace \( ... \) with $$ ... $$ for inline math
+  let processed = markdown.replace(/\\\((.*?)\\\)/gs, "$ $1 $");
+
+  // Replace \[ ... \] with $$ ... $$ for block math
+  processed = processed.replace(/\\\[(.*?)\\\]/gs, "$$\n$1\n$$");
+
+  return processed;
+};
 
 /**
  * @typedef {Object} Asset
@@ -104,7 +118,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
             <div className="bg-primary-100 text-primary p-2 rounded-lg">📄</div>
             <div>
               <h1 className="text-xl font-bold text-primary">{asset.name}</h1>
-              <div className="flex items-center space-x-2 text-sm text-muted mb-1">
+              {/* <div className="flex items-center space-x-2 text-sm text-muted mb-1">
                 <span>ID: {(asset._id || asset.$oid)?.substring(0, 8) || "N/A"}</span>
                 {asset.code && <span>Code: {asset.code.substring(0, 8)}</span>}
                 {asset.language && (
@@ -121,7 +135,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                   <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded">❤️ {asset.hobby}</span>
                 )}
                 {asset.style && <span className="bg-gray-50 text-gray-600 px-2 py-0.5 rounded">✨ {asset.style}</span>}
-              </div>
+              </div> */}
             </div>
           </div>
           <button
@@ -137,7 +151,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
       {/* Asset Content */}
 
       <div className="flex-1 overflow-y-auto bg-white shadow-sm border border-gray-200 p-4">
-        {personalizedContent && personalizedContent.content ? (
+        {personalizedContent?.asset?.content && personalizedContent?.match_type === "exact" ? (
           <div>
             <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
               <div className="flex">
@@ -151,7 +165,16 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                 </div>
               </div>
             </div>
-            <div dangerouslySetInnerHTML={{ __html: personalizedContent.content }}></div>
+            <MarkdownPreview
+              source={preprocessMarkdown(personalizedContent.asset.content)}
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+              wrapperElement={{
+                "data-color-mode": "light",
+              }}
+              style={{ fontSize: "12px" }}
+              className={"*:!text-base *:text-justify *:[word-spacing:-1px]"}
+            />
           </div>
         ) : (
           asset.content && <div dangerouslySetInnerHTML={{ __html: asset.content }}></div>
