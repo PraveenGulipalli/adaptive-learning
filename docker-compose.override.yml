@@ -1,0 +1,40 @@
+# Development overrides for docker-compose
+version: "3.8"
+
+services:
+  backend:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+    volumes:
+      # Enable hot reload for development
+      - ./backend:/app
+      - /app/__pycache__
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000",
+        "--reload",
+      ]
+
+  frontend:
+    environment:
+      - REACT_APP_ENV=development
+      - REACT_APP_API_URL=http://localhost:5000
+    volumes:
+      # Enable hot reload for development
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    # Override to use development server instead of nginx
+    command: ["npm", "start"]
+    ports:
+      - "3000:3000"
+
+  mongodb:
+    ports:
+      - "27017:27017"
+    # Expose MongoDB port for development tools
