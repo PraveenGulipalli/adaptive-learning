@@ -11,11 +11,21 @@ from app.api.api_v1.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    await connect_to_mongo()
+    # Startup - try to connect to MongoDB but don't fail if unavailable
+    try:
+        await connect_to_mongo()
+        print("✅ MongoDB connected successfully")
+    except Exception as e:
+        print(f"⚠️ MongoDB connection failed: {e}")
+        print("🚀 Starting without MongoDB (some features may be limited)")
+    
     yield
+    
     # Shutdown
-    await close_mongo_connection()
+    try:
+        await close_mongo_connection()
+    except Exception as e:
+        print(f"MongoDB disconnect error: {e}")
 
 
 # Create FastAPI app
