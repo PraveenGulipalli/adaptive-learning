@@ -4,8 +4,8 @@ import os
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "sqlite:///./app.db"
+    # Database - Default to a safe fallback that won't cause connection errors
+    database_url: str = os.getenv("DATABASE_URL", "mongodb://localhost:27017/adaptive_learning")
     
     # Security
     secret_key: str = "your-secret-key-change-this-in-production"

@@ -1,0 +1,14 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "backend/Dockerfile"
+dockerContext = "backend"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+NODE_ENV = "production"
+PYTHONPATH = "/app"

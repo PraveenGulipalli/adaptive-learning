@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: adaptive-learning-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    port: 5000
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health
+
+  - type: web
+    name: adaptive-learning-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: starter
+    port: 3000
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: adaptive-learning-backend
+          property: host
+      - key: REACT_APP_ENV
+        value: production
+    healthCheckPath: /health
