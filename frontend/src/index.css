@@ -1,13 +1,259 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Color Theme Variables */
+:root {
+  /* Primary Colors - Blue palette for learning platform */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* Secondary Colors - Indigo palette for depth */
+  --secondary-50: #f0f9ff;
+  --secondary-100: #e0f2fe;
+  --secondary-200: #bae6fd;
+  --secondary-300: #7dd3fc;
+  --secondary-400: #38bdf8;
+  --secondary-500: #0ea5e9;
+  --secondary-600: #0284c7;
+  --secondary-700: #0369a1;
+  --secondary-800: #075985;
+  --secondary-900: #0c4a6e;
+
+  /* Accent Colors - Green for success/progress */
+  --accent-50: #f0fdf4;
+  --accent-100: #dcfce7;
+  --accent-200: #bbf7d0;
+  --accent-300: #86efac;
+  --accent-400: #4ade80;
+  --accent-500: #22c55e;
+  --accent-600: #16a34a;
+  --accent-700: #15803d;
+  --accent-800: #166534;
+  --accent-900: #14532d;
+
+  /* Warning Colors - Amber */
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-300: #fcd34d;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+  --warning-900: #78350f;
+
+  /* Error Colors - Red */
+  --error-50: #fef2f2;
+  --error-100: #fee2e2;
+  --error-200: #fecaca;
+  --error-300: #fca5a5;
+  --error-400: #f87171;
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+  --error-700: #b91c1c;
+  --error-800: #991b1b;
+  --error-900: #7f1d1d;
+
+  /* Neutral Colors - Modern gray palette */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+
+  /* Semantic Colors */
+  --background: var(--neutral-50);
+  --surface: #ffffff;
+  --surface-secondary: var(--neutral-100);
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-muted: var(--neutral-500);
+  --border: var(--neutral-200);
+  --border-hover: var(--neutral-300);
+
+  /* Component Specific */
+  --sidebar-bg: var(--surface);
+  --sidebar-border: var(--border);
+  --header-bg: var(--surface);
+  --header-shadow: rgba(0, 0, 0, 0.1);
+  --module-hover: var(--primary-50);
+  --asset-hover: var(--secondary-50);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Dark mode support (optional - can be implemented later) */
+[data-theme="dark"] {
+  --background: var(--neutral-900);
+  --surface: var(--neutral-800);
+  --surface-secondary: var(--neutral-700);
+  --text-primary: var(--neutral-100);
+  --text-secondary: var(--neutral-300);
+  --text-muted: var(--neutral-400);
+  --border: var(--neutral-700);
+  --border-hover: var(--neutral-600);
+  --sidebar-bg: var(--neutral-800);
+  --sidebar-border: var(--neutral-700);
+  --header-bg: var(--neutral-800);
+  --header-shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Base styles */
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+}
+
+/* Utility classes for theme colors */
+.text-primary {
+  color: var(--primary-600);
+}
+.text-secondary {
+  color: var(--secondary-600);
+}
+.text-accent {
+  color: var(--accent-600);
+}
+.text-warning {
+  color: var(--warning-600);
+}
+.text-error {
+  color: var(--error-600);
+}
+.text-muted {
+  color: var(--text-muted);
+}
+
+.bg-primary {
+  background-color: var(--primary-600);
+}
+.bg-primary-light {
+  background-color: var(--primary-100);
+}
+.bg-secondary {
+  background-color: var(--secondary-600);
+}
+.bg-accent {
+  background-color: var(--accent-600);
+}
+.bg-surface {
+  background-color: var(--surface);
+}
+.bg-surface-secondary {
+  background-color: var(--surface-secondary);
+}
+
+.border-theme {
+  border-color: var(--border);
+}
+.border-theme-hover:hover {
+  border-color: var(--border-hover);
+}
+
+/* Button variants */
+.btn-primary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform;
+  background-color: var(--primary-600);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--primary-700);
+  @apply scale-105 shadow-lg;
+}
+.btn-primary:disabled {
+  background-color: var(--neutral-400);
+  @apply scale-100 cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  background-color: var(--secondary-600);
+  color: white;
+}
+.btn-secondary:hover {
+  background-color: var(--secondary-700);
+}
+
+.btn-outline {
+  @apply px-4 py-2 rounded-lg font-medium border-2 transition-all duration-200;
+  border-color: var(--primary-600);
+  color: var(--primary-600);
+  background-color: transparent;
+}
+.btn-outline:hover {
+  background-color: var(--primary-600);
+  color: white;
+}
+
+/* Card components */
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  @apply rounded-xl shadow-sm;
+}
+
+.card-hover {
+  @apply transition-all duration-200;
+}
+.card-hover:hover {
+  border-color: var(--border-hover);
+  @apply shadow-md;
+}
+
+/* Layout components */
+.app-container {
+  @apply max-w-[1280px] mx-auto;
+}
+
+/* Module tree specific styles */
+.module-item {
+  @apply transition-all duration-200 rounded-lg;
+}
+.module-item:hover {
+  background-color: var(--module-hover);
+}
+
+.asset-item {
+  @apply transition-all duration-200 rounded-lg;
+}
+.asset-item:hover {
+  background-color: var(--asset-hover);
+}
+
+/* Focus styles for accessibility */
+.focus-ring:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Gradient backgrounds for visual interest */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, var(--secondary-500) 0%, var(--secondary-700) 100%);
+}
+
+/* Asset Content Isolation */
+.isolated-content {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border: none;
+  background: white;
 }
