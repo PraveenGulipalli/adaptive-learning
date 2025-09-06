@@ -7,7 +7,12 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --no-access-log"
+
+# Configure the number of workers based on available CPU cores
+[deploy.worker]
+maxConcurrentRequests = 100
+memoryLimit = 1024
+cpuLimit = 1.0
 
 [env]
 # Application
@@ -21,7 +26,7 @@ ENVIRONMENT = "production"
 DATABASE_URL = "${MONGO_URL}"
 
 # CORS (update with your frontend URL)
-ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000"
+ALLOWED_ORIGINS = "*"
 
 # Security
 SECRET_KEY = "your-secure-secret-key-change-this"
