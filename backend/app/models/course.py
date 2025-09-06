@@ -11,6 +11,8 @@ class Asset(BaseModel):
     name: str
     style: str = "original"
     content: str
+    summary: Optional[str] = None  # AI-generated summary
+    summary_updated_at: Optional[datetime] = None  # When summary was last updated
     
     class Config:
         populate_by_name = True

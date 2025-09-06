@@ -9,6 +9,8 @@ class AssetBase(BaseModel):
     name: str
     style: str = "original"
     content: str
+    summary: Optional[str] = None
+    summary_updated_at: Optional[datetime] = None
 
 
 class AssetCreate(AssetBase):

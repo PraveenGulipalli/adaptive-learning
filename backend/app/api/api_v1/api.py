@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.api_v1.endpoints import users, items, auth, learning_resources, summary, users_collection, content_transformer, courses, translations,llm, quiz
+from app.api.api_v1.endpoints import users, items, auth, learning_resources, summary, users_collection, content_transformer, courses, translations, llm, quiz, asset_summary
 
 
 api_router = APIRouter()
@@ -18,4 +18,5 @@ api_router.include_router(llm.router, prefix="/llm", tags=["llm"])
 api_router.include_router(quiz.router, prefix="/quiz", tags=["quiz"])
 
 api_router.include_router(translations.router, prefix="/translations", tags=["translations"])
+api_router.include_router(asset_summary.router, prefix="/asset-summary", tags=["asset-summary"])
 
