@@ -257,3 +257,7 @@ body {
   border: none;
   background: white;
 }
+
+body {
+  padding: 0 !important;
+}

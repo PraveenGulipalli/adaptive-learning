@@ -59,7 +59,7 @@ export const getUserByEmail = async (email) => {
  * @param {string} userData.email - User email
  * @param {string} userData.domain - User domain
  * @param {string} userData.hobbies - User hobbies
- * @param {string} userData.learningStyle - User learning style
+ * @param {string} userData.learningStyle - User learning style ("visual_cue", "storytelling", or "summary")
  * @returns {Promise} - Promise resolving to created user data
  */
 export const saveUserPreferences = async (userData) => {
@@ -80,7 +80,7 @@ export const saveUserPreferences = async (userData) => {
  * @param {string} [updateData.email] - User email
  * @param {string} [updateData.domain] - User domain
  * @param {string} [updateData.hobbies] - User hobbies
- * @param {string} [updateData.learningStyle] - User learning style
+ * @param {string} [updateData.learningStyle] - User learning style ("visual_cue", "storytelling", or "summary")
  * @returns {Promise} - Promise resolving to updated user data
  */
 export const updateUserPreferences = async (userId, updateData) => {
@@ -106,6 +106,33 @@ export const getCourseAssets = async (courseId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching course assets:", error);
+    throw error;
+  }
+};
+
+// Content Transformer API functions
+
+/**
+ * Get personalized asset content based on user preferences
+ * @param {string} code - Asset code identifier
+ * @param {string} domain - User's domain preference
+ * @param {string} hobby - User's hobby preference
+ * @param {string} style - User's preferred learning style
+ * @returns {Promise} - Promise resolving to personalized asset data
+ */
+export const getPersonalizedAsset = async (code, domain, hobby, style) => {
+  try {
+    const response = await api.get("/content-transformer/getAsset", {
+      params: {
+        code,
+        domain,
+        hobby,
+        style,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching personalized asset:", error);
     throw error;
   }
 };

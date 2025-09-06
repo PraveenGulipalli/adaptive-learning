@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getCourseAssets } from "../services/api";
 import AssetView from "./AssetView";
 
@@ -197,87 +197,13 @@ function Home() {
       } catch (err) {
         console.error("Failed to fetch course data:", err);
         setError(err.message || "Failed to load course content");
-
-        // Fallback to sample data on error (optional)
-        setCourseData({
-          _id: "sample-course-id",
-          name: "Generative AI (Sample Data)",
-          modules: [
-            {
-              _id: "sample-module-1",
-              code: "sample-code-1",
-              type: "module",
-              name: "Introduction to AI",
-              assets: [
-                {
-                  _id: "68bc14d817fa5a8d69dc67f4",
-                  name: "What is AI?",
-                  domain: "General",
-                  hobby: "Learning",
-                  language: "en",
-                },
-                {
-                  _id: "68bc14d817fa5a8d69dc67f5",
-                  name: "History of AI",
-                  domain: "General",
-                  hobby: "Learning",
-                  language: "en",
-                },
-                {
-                  _id: "68bc14d817fa5a8d69dc67f6",
-                  name: "Types of AI",
-                  domain: "General",
-                  hobby: "Learning",
-                  language: "en",
-                },
-              ],
-            },
-            {
-              _id: "sample-module-2",
-              code: "sample-code-2",
-              type: "module",
-              name: "Machine Learning Basics",
-              assets: [
-                {
-                  _id: "68bc14d817fa5a8d69dc67f7",
-                  name: "Supervised Learning",
-                  domain: "Technical",
-                  hobby: "Learning",
-                  language: "en",
-                },
-                {
-                  _id: "68bc14d817fa5a8d69dc67f8",
-                  name: "Unsupervised Learning",
-                  domain: "Technical",
-                  hobby: "Learning",
-                  language: "en",
-                },
-              ],
-            },
-            {
-              _id: "sample-module-3",
-              code: "sample-code-3",
-              type: "module",
-              name: "Deep Learning",
-              assets: [
-                {
-                  _id: "68bc14d817fa5a8d69dc67f9",
-                  name: "Neural Networks",
-                  domain: "Technical",
-                  hobby: "Learning",
-                  language: "en",
-                },
-              ],
-            },
-          ],
-        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCourseData();
-  }, [defaultCourseId]);
+  }, []);
 
   return (
     <>
