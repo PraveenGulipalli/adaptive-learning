@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserByEmail } from "../services/api";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { AlertCircle, GraduationCap, Mail, Rocket, Loader2 } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -67,82 +72,77 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="flex justify-center items-center min-h-screen" style={{ backgroundColor: "var(--background)" }}>
-      <div className="w-full max-w-md p-8 space-y-6 card card-hover">
-        <div className="text-center">
-          <div className="mb-4">
-            <span className="text-5xl">🎓</span>
-          </div>
-          <h1 className="text-3xl font-bold gradient-primary text-white px-6 py-3 rounded-lg inline-block mb-4">
-            Welcome
-          </h1>
-          <p className="text-muted">Enter your email to access your personalized learning experience</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Input */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-semibold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
-              📧 Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={email}
-              onChange={handleChange}
-              placeholder="e.g., ada@example.com"
-              className="w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-              }}
-            />
-          </div>
-
-          {error && (
-            <div
-              className="p-3 rounded-lg"
-              style={{
-                backgroundColor: "var(--error-50)",
-                color: "var(--error-700)",
-                border: "1px solid var(--error-200)",
-              }}
-            >
-              <div className="flex items-center">
-                <span className="mr-2">⚠️</span>
-                <span className="text-sm font-medium">{error}</span>
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
+              <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
-          )}
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Welcome
+              </CardTitle>
+              <CardDescription className="text-base text-muted-foreground">
+                Enter your email to access your personalized learning experience
+              </CardDescription>
+            </div>
+          </CardHeader>
 
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary py-3 text-lg font-semibold focus-ring"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <span className="animate-spin mr-2">⏳</span>
-                  Checking...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">🚀 Login</span>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={handleChange}
+                  placeholder="e.g., ada@example.com"
+                  className="h-12 text-base"
+                  disabled={isLoading}
+                />
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </div>
-        </form>
 
-        <div className="text-center pt-4 border-t border-theme">
-          <p className="text-xs text-muted">New to the platform? Your preferences will be set up after login.</p>
-        </div>
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-semibold"
+                disabled={isLoading || !email.trim()}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Checking...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Rocket className="w-4 h-4" />
+                    Login
+                  </div>
+                )}
+              </Button>
+            </form>
+
+            <div className="pt-6 border-t border-border text-center">
+              <p className="text-xs text-muted-foreground">
+                New to the platform? Your preferences will be set up after login.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

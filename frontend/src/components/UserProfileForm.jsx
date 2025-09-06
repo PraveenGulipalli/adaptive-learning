@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserPreferences, updateUserPreferences } from "../services/api";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { AlertCircle, User, Mail, Target, Heart, Brain, Save, Edit, Loader2 } from "lucide-react";
 
 /**
  * A form to collect user profile information for content personalization.
@@ -25,17 +31,21 @@ function UserProfileForm({ isUpdate }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (name, value) => {
     setProfile((prevProfile) => ({
       ...prevProfile,
       [name]: value,
     }));
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    handleChange(name, value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("profile", profile);
+
     // Validate form fields
     if (
       !profile.name.trim() ||
@@ -96,195 +106,147 @@ function UserProfileForm({ isUpdate }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen" style={{ backgroundColor: "var(--background)" }}>
-      <div className="w-full max-w-md p-8 space-y-6 card card-hover">
-        <div className="text-center">
-          <div className="mb-4">
-            <span className="text-5xl">👤</span>
-          </div>
-          <h1 className="text-3xl font-bold gradient-secondary text-white px-6 py-3 rounded-lg inline-block mb-4">
-            {isUpdate ? "Update Profile" : "Create Your Profile"}
-          </h1>
-          <p className="text-muted">
-            {isUpdate
-              ? "Update your preferences to get better personalized content."
-              : "Tell us about yourself to get personalized learning content."}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Input */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-semibold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
-              📧 Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={profile.email}
-              onChange={handleChange}
-              placeholder="e.g., ada@example.com"
-              className="w-full px-4 py-3 border-2 rounded-lg shadow-sm transition-all duration-200 opacity-60"
-              style={{
-                backgroundColor: "var(--surface-secondary)",
-                color: "var(--text-secondary)",
-                borderColor: "var(--border)",
-              }}
-              disabled
-            />
-            <p className="text-xs text-muted mt-1">Email cannot be changed</p>
-          </div>
-
-          {/* Full Name Input */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-              👤 Full Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={profile.name}
-              onChange={handleChange}
-              placeholder="e.g., Ada Lovelace"
-              className={`w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200 ${
-                isUpdate ? "opacity-60" : ""
-              }`}
-              style={{
-                backgroundColor: isUpdate ? "var(--surface-secondary)" : "var(--surface)",
-                color: "var(--text-primary)",
-              }}
-              disabled={isUpdate}
-            />
-            {isUpdate && <p className="text-xs text-muted mt-1">Name cannot be changed</p>}
-          </div>
-
-          {/* Domain Selection */}
-          <div>
-            <label
-              htmlFor="domain"
-              className="block text-sm font-semibold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
-              🎯 Primary Domain
-            </label>
-            <select
-              id="domain"
-              name="domain"
-              value={profile.domain}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-              }}
-            >
-              <option value="">Select your domain</option>
-              <option value="engineering-student">🔧 Engineering Student</option>
-              <option value="medical-student">🏥 Medical Student</option>
-              <option value="business-student">💼 Business Student</option>
-              <option value="teacher-trainer">👨‍🏫 Teacher / Trainer</option>
-              <option value="working-professional">💻 Working Professional</option>
-            </select>
-          </div>
-
-          {/* hobbies Selection */}
-          <div>
-            <label
-              htmlFor="hobbies"
-              className="block text-sm font-semibold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
-              ❤️ Hobbies
-            </label>
-            <select
-              id="hobbies"
-              name="hobbies"
-              value={profile.hobbies}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-              }}
-            >
-              <option value="">Select your interest</option>
-              <option value="cricket">🏏 Cricket</option>
-              <option value="movies">🎬 Movie Buff</option>
-              <option value="gaming">🎮 Gamer</option>
-              <option value="music">🎵 Music Lover</option>
-              <option value="cooking">👨‍🍳 Chef</option>
-            </select>
-          </div>
-
-          {/* Learning Style Selection */}
-          <div>
-            <label
-              htmlFor="learningStyle"
-              className="block text-sm font-semibold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
-              🧠 Learning Style
-            </label>
-            <select
-              id="learningStyle"
-              name="learningStyle"
-              value={profile.learningStyle}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-              }}
-            >
-              <option value="">Select your learning style</option>
-              <option value="visual_cue">👁️ Visual Cue</option>
-              <option value="storytelling">📚 Storytelling</option>
-              <option value="summary">📝 Summary</option>
-            </select>
-          </div>
-
-          {error && (
-            <div
-              className="p-3 rounded-lg"
-              style={{
-                backgroundColor: "var(--error-50)",
-                color: "var(--error-700)",
-                border: "1px solid var(--error-200)",
-              }}
-            >
-              <div className="flex items-center">
-                <span className="mr-2">⚠️</span>
-                <span className="text-sm font-medium">{error}</span>
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-secondary-foreground" />
             </div>
-          )}
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+                {isUpdate ? "Update Profile" : "Create Your Profile"}
+              </CardTitle>
+              <CardDescription className="text-base">
+                {isUpdate
+                  ? "Update your preferences to get better personalized content."
+                  : "Tell us about yourself to get personalized learning content."}
+              </CardDescription>
+            </div>
+          </CardHeader>
 
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary py-3 text-lg font-semibold focus-ring"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <span className="animate-spin mr-2">⏳</span>
-                  {isUpdate ? "Updating..." : "Saving..."}
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  {isUpdate ? "✏️ Update Profile" : "💾 Save Profile"}
-                </span>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Email Input */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={profile.email}
+                  onChange={handleInputChange}
+                  placeholder="e.g., ada@example.com"
+                  disabled
+                  className="bg-muted text-muted-foreground"
+                />
+                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              </div>
+
+              {/* Full Name Input */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={profile.name}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Ada Lovelace"
+                  disabled={isUpdate}
+                  className={isUpdate ? "bg-muted text-muted-foreground" : ""}
+                />
+                {isUpdate && <p className="text-xs text-muted-foreground">Name cannot be changed</p>}
+              </div>
+
+              {/* Domain Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Primary Domain
+                </Label>
+                <Select value={profile.domain} onValueChange={(value) => handleChange("domain", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your domain" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="engineering-student">🔧 Engineering Student</SelectItem>
+                    <SelectItem value="medical-student">🏥 Medical Student</SelectItem>
+                    <SelectItem value="business-student">💼 Business Student</SelectItem>
+                    <SelectItem value="teacher-trainer">👨‍🏫 Teacher / Trainer</SelectItem>
+                    <SelectItem value="working-professional">💻 Working Professional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Hobbies Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Heart className="w-4 h-4" />
+                  Hobbies
+                </Label>
+                <Select value={profile.hobbies} onValueChange={(value) => handleChange("hobbies", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your interest" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cricket">🏏 Cricket</SelectItem>
+                    <SelectItem value="movies">🎬 Movie Buff</SelectItem>
+                    <SelectItem value="gaming">🎮 Gamer</SelectItem>
+                    <SelectItem value="music">🎵 Music Lover</SelectItem>
+                    <SelectItem value="cooking">👨‍🍳 Chef</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Learning Style Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  Learning Style
+                </Label>
+                <Select value={profile.learningStyle} onValueChange={(value) => handleChange("learningStyle", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your learning style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="visual_cue">👁️ Visual Cue</SelectItem>
+                    <SelectItem value="storytelling">📚 Storytelling</SelectItem>
+                    <SelectItem value="summary">📝 Summary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </div>
-        </form>
+
+              {/* Submit Button */}
+              <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading}>
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isUpdate ? "Updating..." : "Saving..."}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {isUpdate ? <Edit className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                    {isUpdate ? "Update Profile" : "Save Profile"}
+                  </div>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
