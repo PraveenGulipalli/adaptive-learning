@@ -104,22 +104,22 @@ VISUAL CUE 4: [Optional extra if needed]
 """
         }
         
-            # Create domain-specific context based on predefined categories
-            domain_contexts = {
-                "engineering-student": "Use examples in circuits, code snippets, algorithms, and technical implementations",
-                "medical-student": "Use case studies in healthcare, patient scenarios, medical procedures, and clinical examples", 
-                "business-student": "Use marketing examples, finance scenarios, business strategies, and corporate case studies",
-                "teacher-trainer": "Use classroom storytelling, pedagogy techniques, educational methods, and teaching scenarios",
-                "working-professional": "Use real-world workplace analogies, professional scenarios, industry examples, and practical applications"
-            }
-            
-            domain_context = domain_contexts.get(request.domain, f"Use examples relevant to {request.domain}")
-            
-            # Add keywords context if provided
-            keywords_context = f"\nAdditional guidance: {request.keywords}" if request.keywords else ""
-            
-            # Create the AI prompt based on selected style
-            prompt = f"""You are an AI content transformer. 
+        # Create domain-specific context based on predefined categories
+        domain_contexts = {
+            "engineering-student": "Use examples in circuits, code snippets, algorithms, and technical implementations",
+            "medical-student": "Use case studies in healthcare, patient scenarios, medical procedures, and clinical examples", 
+            "business-student": "Use marketing examples, finance scenarios, business strategies, and corporate case studies",
+            "teacher-trainer": "Use classroom storytelling, pedagogy techniques, educational methods, and teaching scenarios",
+            "working-professional": "Use real-world workplace analogies, professional scenarios, industry examples, and practical applications"
+        }
+        
+        domain_context = domain_contexts.get(request.domain, f"Use examples relevant to {request.domain}")
+        
+        # Add keywords context if provided
+        keywords_context = f"\nAdditional guidance: {request.keywords}" if request.keywords else ""
+        
+        # Create the AI prompt based on selected style
+        prompt = f"""You are an AI content transformer. 
 You will receive inputs for content transformation based on specific learner profiles.
 
 Domain Context: {domain_context}
@@ -166,17 +166,17 @@ Now transform this content for {request.domain} who loves {request.hobby}:
 
 Please provide ONLY the {request.style} output without any formatting or labels:"""
 
-            # Generate response using Google Generative AI
-            response = model.generate_content(prompt)
-            
-            if not response.text:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to generate content transformation"
-                )
-            
-            # Parse the response - since we asked for only the output, use it directly
-            output = response.text.strip()
+        # Generate response using Google Generative AI
+        response = model.generate_content(prompt)
+        
+        if not response.text:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to generate content transformation"
+            )
+        
+        # Parse the response - since we asked for only the output, use it directly
+        output = response.text.strip()
         
         # Clean up any unwanted formatting
         if output.startswith('"') and output.endswith('"'):
