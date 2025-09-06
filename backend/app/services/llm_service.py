@@ -8,10 +8,7 @@ import logging
 from typing import Dict, Any, List, Optional, Union
 from enum import Enum
 from pydantic import BaseModel, Field
-import openai
-from openai import OpenAI
 import asyncio
-import aiohttp
 import google.generativeai as genai
 from app.core.config import settings
 
