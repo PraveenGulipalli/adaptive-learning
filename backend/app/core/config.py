@@ -1,0 +1,33 @@
+from pydantic_settings import BaseSettings
+from typing import List
+import os
+
+
+class Settings(BaseSettings):
+    # Database
+    database_url: str = "sqlite:///./app.db"
+    
+    # Security
+    secret_key: str = "your-secret-key-change-this-in-production"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    
+    # Environment
+    environment: str = "development"
+    debug: bool = True
+    
+    # CORS
+    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    
+    # API
+    api_v1_prefix: str = "/api/v1"
+    project_name: str = "Adaptive Learning Platform"
+    version: str = "1.0.0"
+    description: str = "A modern adaptive learning platform with FastAPI backend and React frontend"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+settings = Settings()
