@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
+from typing import Optional
 import logging
 import google.generativeai as genai
 from datetime import datetime
@@ -791,111 +792,154 @@ Please provide ONLY the {style} output without any formatting or labels:"""
 
 @router.put(
     "/updateAsset",
-    summary="Update Asset Status",
-    description="Update the status of an asset by asset code."
+    summary="Update User Asset Status",
+    description="Update the status of an asset for a specific user in a course."
 )
 async def update_asset(
-    assetCode: str,
-    status: str,
+    course: str = Query(..., description="Course code identifier"),
+    asset: str = Query(..., description="Asset code identifier"),
+    user: str = Query(..., description="User ID"),
+    asset_status: str = Query(..., alias="status", description="Asset status ('not-started', 'in-progress', 'completed')"),
+    progress: Optional[int] = Query(None, ge=0, le=100, description="Progress percentage (0-100)"),
     db=Depends(get_database)
 ):
     """
-    Update asset status by asset code.
+    Update user asset status in the userassetstatus collection.
     
-    - **assetCode**: Asset code identifier
+    - **course**: Course code identifier
+    - **asset**: Asset code identifier  
+    - **user**: User ID
     - **status**: New status for the asset ('not-started', 'in-progress', 'completed')
+    - **progress**: Optional progress percentage (0-100)
     
-    Updates the status field for all assets matching the given asset code.
+    Updates or creates a record in the userassetstatus collection for the specific user, course, and asset combination.
     """
     try:
         from bson import ObjectId
         from datetime import datetime
-        
+        from app.schemas.user_asset_status import AssetStatus
+
         # Validate status values
-        valid_statuses = ["not-started", "in-progress", "completed"]
-        if status not in valid_statuses:
+        try:
+            status_enum = AssetStatus(asset_status)
+        except ValueError:
+            valid_statuses = [s.value for s in AssetStatus]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status '{status}'. Valid statuses are: {', '.join(valid_statuses)}"
+                detail=f"Invalid status '{asset_status}'. Valid statuses are: {', '.join(valid_statuses)}"
             )
-        
-        logger.info(f"Updating status for assetCode: {assetCode} to status: {status}")
-        
-        # Try to convert assetCode to ObjectId for search
-        search_conditions = []
-        
-        # Add both ObjectId and string versions of the code to search
-        try:
-            code_as_objectid = ObjectId(assetCode)
-            search_conditions.extend([
-                {"code": code_as_objectid},
-                {"code": assetCode}
-            ])
-        except Exception:
-            # If not a valid ObjectId, search as string only
-            search_conditions.append({"code": assetCode})
-        
-        updated_count = 0
-        updated_assets = []
-        
-        # Update all assets with matching asset code
-        for search_condition in search_conditions:
-            update_result = await db["assets"].update_many(
-                search_condition,
-                {
-                    "$set": {
-                        "status": status,
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
-            
-            if update_result.modified_count > 0:
-                updated_count += update_result.modified_count
-                
-                # Get the updated assets for response
-                updated_assets_cursor = db["assets"].find(search_condition)
-                assets = await updated_assets_cursor.to_list(length=None)
-                
-                for asset in assets:
-                    asset["id"] = str(asset["_id"])
-                    del asset["_id"]
-                    if "code" in asset and hasattr(asset["code"], 'generation_time'):
-                        asset["code"] = str(asset["code"])
-                    if "created_at" in asset and hasattr(asset["created_at"], 'isoformat'):
-                        asset["created_at"] = asset["created_at"].isoformat()
-                    if "updated_at" in asset and hasattr(asset["updated_at"], 'isoformat'):
-                        asset["updated_at"] = asset["updated_at"].isoformat()
-                    
-                    updated_assets.append(asset)
-                
-                break  # Exit loop after first successful update
-        
-        if updated_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No assets found with assetCode: {assetCode}"
-            )
-        
-        logger.info(f"Successfully updated {updated_count} assets with assetCode: {assetCode}")
-        
-        return {
-            "success": True,
-            "message": f"Successfully updated {updated_count} asset(s) with assetCode: {assetCode}",
-            "assetCode": assetCode,
-            "newStatus": status,
-            "updatedCount": updated_count,
-            "updatedAssets": updated_assets,
-            "timestamp": datetime.utcnow().isoformat()
+
+        logger.info(f"Updating user asset status: course={course}, asset={asset}, user={user}, status={asset_status}")
+
+        # Create the search condition
+        search_condition = {
+            "course": course,
+            "asset": asset,
+            "user": user
         }
-        
+
+        # Prepare update data
+        update_data = {
+            "status": asset_status,
+            "updated_at": datetime.utcnow(),
+            "last_accessed": datetime.utcnow()
+        }
+
+        # Add progress if provided
+        if progress is not None:
+            update_data["progress"] = progress
+
+        # Try to update existing record first
+        update_result = await db["userassetstatus"].update_one(
+            search_condition,
+            {"$set": update_data}
+        )
+
+        if update_result.matched_count > 0:
+            # Record was updated
+            logger.info(f"Updated existing user asset status record")
+            
+            # Get the updated record
+            updated_record = await db["userassetstatus"].find_one(search_condition)
+            
+            if updated_record:
+                # Convert ObjectId to string for JSON response
+                updated_record["id"] = str(updated_record["_id"])
+                del updated_record["_id"]
+                
+                # Convert any other ObjectId fields to strings
+                for key, value in list(updated_record.items()):
+                    if hasattr(value, 'generation_time'):  # Check if it's an ObjectId
+                        updated_record[key] = str(value)
+                
+                # Convert datetime fields to ISO format
+                for field in ["created_at", "updated_at", "last_accessed"]:
+                    if field in updated_record and hasattr(updated_record[field], 'isoformat'):
+                        updated_record[field] = updated_record[field].isoformat()
+
+                return {
+                    "success": True,
+                    "action": "updated",
+                    "message": f"Successfully updated user asset status",
+                    "course": course,
+                    "asset": asset,
+                    "user": user,
+                    "newStatus": asset_status,
+                    "progress": progress,
+                    "record": updated_record,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+        else:
+            # No existing record found, create a new one
+            logger.info(f"Creating new user asset status record")
+            
+            new_record_data = {
+                **search_condition,
+                **update_data,
+                "created_at": datetime.utcnow(),
+                "progress": progress if progress is not None else 0
+            }
+
+            insert_result = await db["userassetstatus"].insert_one(new_record_data)
+            
+            if insert_result.inserted_id:
+                new_record_data["id"] = str(insert_result.inserted_id)
+                
+                # Convert any ObjectId fields to strings
+                for key, value in list(new_record_data.items()):
+                    if hasattr(value, 'generation_time'):  # Check if it's an ObjectId
+                        new_record_data[key] = str(value)
+                
+                # Convert datetime fields to ISO format
+                for field in ["created_at", "updated_at", "last_accessed"]:
+                    if field in new_record_data and hasattr(new_record_data[field], 'isoformat'):
+                        new_record_data[field] = new_record_data[field].isoformat()
+
+                return {
+                    "success": True,
+                    "action": "created",
+                    "message": f"Successfully created new user asset status record",
+                    "course": course,
+                    "asset": asset,
+                    "user": user,
+                    "newStatus": asset_status,
+                    "progress": progress,
+                    "record": new_record_data,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create user asset status record"
+                )
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating asset status: {str(e)}")
+        logger.error(f"Error updating user asset status: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update asset status: {str(e)}"
+            detail=f"Failed to update user asset status: {str(e)}"
         )
 
 @router.get(
