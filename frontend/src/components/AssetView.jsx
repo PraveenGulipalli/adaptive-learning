@@ -1,54 +1,72 @@
-import React, { useRef, useEffect } from "react";
+import React, {useState } from "react";
+import { getPersonalizedAsset } from "../services/api";
+
+/**
+ * @typedef {Object} Asset
+ * @property {string} _id - Unique identifier for the asset
+ * @property {string} [$oid] - Alternative unique identifier (MongoDB ObjectId format)
+ * @property {string} name - Display name of the asset
+ * @property {string} style - Style variant of the asset (e.g., "original")
+ * @property {string} content - HTML string content to be displayed
+ * @property {string} code - Asset code identifier
+ * @property {string} language - Language code (e.g., "en")
+ * @property {string} domain - Subject domain (e.g., "General")
+ * @property {string} hobby - Associated hobby or interest (e.g., "Learning")
+ */
 
 /**
  * AssetView component to display asset content in HTML format
  * @param {Object} props - Component props
- * @param {Object} props.asset - The selected asset object containing content field with HTML string
+ * @param {Asset|null} props.asset - The selected asset object containing content field with HTML string
  * @param {Function} props.onClose - Function to close the asset view
+ * @param {Function} props.handleNextClick - Function to handle the next click
+ * @param {boolean} props.isGeneratingQuiz - Whether a quiz is being generated
+ * @param {string|null} props.quizGenerationError - Error message from quiz generation
  */
-/**
- * IsolatedContent component that renders HTML content with isolated styles using Shadow DOM
- */
-function IsolatedContent({ htmlContent }) {
-  const containerRef = useRef(null);
 
-  useEffect(() => {
-    if (containerRef.current && htmlContent) {
-      // Clear existing content
-      containerRef.current.innerHTML = "";
+function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, quizGenerationError = null }) {
+  const [isGeneratingPersonalized, setIsGeneratingPersonalized] = useState(false);
+  const [personalizedContent, setPersonalizedContent] = useState(null);
 
-      try {
-        // Create shadow root for style isolation
-        const shadowRoot = containerRef.current.attachShadow({ mode: "open" });
-
-        // Create a wrapper div inside shadow root
-        const wrapper = document.createElement("div");
-        wrapper.style.cssText = `
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-          line-height: 1.6;
-          color: #374151;
-          padding: 2rem;
-          max-width: none;
-          font-size: 16px;
-        `;
-
-        // Set the HTML content
-        wrapper.innerHTML = htmlContent;
-
-        // Append to shadow root
-        shadowRoot.appendChild(wrapper);
-      } catch (error) {
-        // Fallback: if shadow DOM is not supported, use regular innerHTML
-        console.warn("Shadow DOM not supported, falling back to regular innerHTML:", error);
-        containerRef.current.innerHTML = htmlContent;
-      }
+  /**
+   * Handles the generation of personalized content
+   */
+  const handleGeneratePersonalizedContent = async () => {
+    if (!asset?.code) {
+      console.error("Asset code is required for personalization");
+      return;
     }
-  }, [htmlContent]);
 
-  return <div ref={containerRef} className="isolated-content" />;
-}
+    try {
+      setIsGeneratingPersonalized(true);
 
-function AssetView({ asset, onClose }) {
+      // Get user preferences from localStorage
+      const userProfile = localStorage.getItem("userProfile");
+      const profile = userProfile ? JSON.parse(userProfile) : {};
+
+      const domain = profile.domain;
+      const hobby = profile.hobbies;
+      const style = profile.learningStyle;
+
+      console.log("Generating personalized content with:", {
+        code: asset.code,
+        domain,
+        hobby,
+        style,
+      });
+
+      const personalizedAsset = await getPersonalizedAsset(asset.code, domain, hobby, style);
+      setPersonalizedContent(personalizedAsset);
+
+      console.log("Personalized content generated successfully");
+    } catch (error) {
+      console.error("Error generating personalized content:", error);
+      // You might want to show a toast notification here
+    } finally {
+      setIsGeneratingPersonalized(false);
+    }
+  };
+
   if (!asset) {
     return (
       <div className="flex-1 p-8">
@@ -118,20 +136,74 @@ function AssetView({ asset, onClose }) {
 
       {/* Asset Content */}
 
-      <div className="flex-1 overflow-y-auto bg-white rounded-lg shadow-sm border border-gray-200">
-        {asset.content && <IsolatedContent htmlContent={asset.content} />}
+      <div className="flex-1 overflow-y-auto bg-white shadow-sm border border-gray-200 p-4">
+        {personalizedContent && personalizedContent.content ? (
+          <div>
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="text-blue-400">✨</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Personalized Content:</strong> Generated based on your preferences
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div dangerouslySetInnerHTML={{ __html: personalizedContent.content }}></div>
+          </div>
+        ) : (
+          asset.content && <div dangerouslySetInnerHTML={{ __html: asset.content }}></div>
+        )}
       </div>
 
       {/* Action Bar */}
       <div className="bg-surface border-t border-theme p-4">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">
-            <button className="btn-outline text-sm">📚 Notes</button>
-            <button className="btn-outline text-sm">🔗 Share</button>
+            <button
+              className={`btn-outline text-sm ${isGeneratingPersonalized ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={handleGeneratePersonalizedContent}
+              disabled={isGeneratingPersonalized}
+            >
+              {isGeneratingPersonalized ? (
+                <>
+                  <span className="inline-block animate-spin mr-2">⟳</span>
+                  Generating...
+                </>
+              ) : (
+                "Generate Personalised Content"
+              )}
+            </button>
+            {personalizedContent && (
+              <button className="btn-outline text-sm" onClick={() => setPersonalizedContent(null)}>
+                Show Original
+              </button>
+            )}
           </div>
-          <div className="flex space-x-2">
-            <button className="btn-outline text-sm">← Previous</button>
-            <button className="btn-primary text-sm">Next →</button>
+          <div className="flex flex-col space-y-2">
+            {quizGenerationError && (
+              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                <span className="font-semibold">Quiz Generation Error:</span> {quizGenerationError}
+              </div>
+            )}
+            <div className="flex space-x-2">
+              <button
+                className={`btn-primary text-sm ${isGeneratingQuiz ? "opacity-50 cursor-not-allowed" : ""}`}
+                // onClick={handleNextClick}
+                disabled={isGeneratingQuiz}
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <span className="animate-spin mr-1">⏳</span>
+                    Generating Quiz...
+                  </>
+                ) : (
+                  "Next"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ function UserProfileForm({ isUpdate }) {
           email: "",
           domain: "",
           hobbies: "",
+          learningStyle: "",
         }
   );
 
@@ -36,7 +37,13 @@ function UserProfileForm({ isUpdate }) {
     e.preventDefault();
     console.log("profile", profile);
     // Validate form fields
-    if (!profile.name.trim() || !profile.email.trim() || !profile.domain.trim() || !profile.hobbies.trim()) {
+    if (
+      !profile.name.trim() ||
+      !profile.email.trim() ||
+      !profile.domain.trim() ||
+      !profile.hobbies.trim() ||
+      !profile.learningStyle.trim()
+    ) {
       setError("Please fill out all fields to personalize your content.");
       return;
     }
@@ -51,7 +58,7 @@ function UserProfileForm({ isUpdate }) {
         email: profile.email.trim(),
         domain: profile.domain,
         hobbies: profile.hobbies,
-        learningStyle: "default", // Setting a default value as it's not in the form
+        learningStyle: profile.learningStyle,
       };
 
       let result;
@@ -178,11 +185,11 @@ function UserProfileForm({ isUpdate }) {
               }}
             >
               <option value="">Select your domain</option>
-              <option value="Engineering Student">🔧 Engineering Student</option>
-              <option value="Medical Student">🏥 Medical Student</option>
-              <option value="Business Student">💼 Business Student</option>
-              <option value="Teacher / Trainer">👨‍🏫 Teacher / Trainer</option>
-              <option value="Working Professional">💻 Working Professional</option>
+              <option value="engineering-student">🔧 Engineering Student</option>
+              <option value="medical-student">🏥 Medical Student</option>
+              <option value="business-student">💼 Business Student</option>
+              <option value="teacher-trainer">👨‍🏫 Teacher / Trainer</option>
+              <option value="working-professional">💻 Working Professional</option>
             </select>
           </div>
 
@@ -207,10 +214,38 @@ function UserProfileForm({ isUpdate }) {
               }}
             >
               <option value="">Select your interest</option>
-              <option value="Cricket">🏏 Cricket</option>
-              <option value="Movie Buff">🎬 Movie Buff</option>
-              <option value="Gamer">🎮 Gamer</option>
-              <option value="Music Lover">🎵 Music Lover</option>
+              <option value="cricket">🏏 Cricket</option>
+              <option value="movies">🎬 Movie Buff</option>
+              <option value="gaming">🎮 Gamer</option>
+              <option value="music">🎵 Music Lover</option>
+              <option value="cooking">👨‍🍳 Chef</option>
+            </select>
+          </div>
+
+          {/* Learning Style Selection */}
+          <div>
+            <label
+              htmlFor="learningStyle"
+              className="block text-sm font-semibold mb-2"
+              style={{ color: "var(--text-primary)" }}
+            >
+              🧠 Learning Style
+            </label>
+            <select
+              id="learningStyle"
+              name="learningStyle"
+              value={profile.learningStyle}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border-2 border-theme border-theme-hover rounded-lg shadow-sm focus-ring transition-all duration-200"
+              style={{
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+              }}
+            >
+              <option value="">Select your learning style</option>
+              <option value="visual_cue">👁️ Visual Cue</option>
+              <option value="storytelling">📚 Storytelling</option>
+              <option value="summary">📝 Summary</option>
             </select>
           </div>
 

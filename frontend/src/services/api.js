@@ -59,7 +59,7 @@ export const getUserByEmail = async (email) => {
  * @param {string} userData.email - User email
  * @param {string} userData.domain - User domain
  * @param {string} userData.hobbies - User hobbies
- * @param {string} userData.learningStyle - User learning style
+ * @param {string} userData.learningStyle - User learning style ("visual_cue", "storytelling", or "summary")
  * @returns {Promise} - Promise resolving to created user data
  */
 export const saveUserPreferences = async (userData) => {
@@ -80,7 +80,7 @@ export const saveUserPreferences = async (userData) => {
  * @param {string} [updateData.email] - User email
  * @param {string} [updateData.domain] - User domain
  * @param {string} [updateData.hobbies] - User hobbies
- * @param {string} [updateData.learningStyle] - User learning style
+ * @param {string} [updateData.learningStyle] - User learning style ("visual_cue", "storytelling", or "summary")
  * @returns {Promise} - Promise resolving to updated user data
  */
 export const updateUserPreferences = async (userId, updateData) => {
@@ -106,6 +106,78 @@ export const getCourseAssets = async (courseId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching course assets:", error);
+    throw error;
+  }
+};
+
+// Quiz API functions
+
+/**
+ * Generate quizzes for a course or specific module
+ * @param {Object} requestData - Quiz generation request data
+ * @param {string} requestData.course_id - MongoDB ObjectId of the course (required)
+ * @param {string} [requestData.module_code] - Module code reference (optional)
+ * @param {boolean} [requestData.overwrite] - Whether to overwrite existing quizzes (default: false)
+ * @param {number} [requestData.num_questions] - Number of questions per quiz (default: 5)
+ * @param {string} [requestData.difficulty] - Quiz difficulty level (easy/medium/hard)
+ * @returns {Promise} - Promise resolving to quiz generation response
+ */
+export const generateQuizzes = async (requestData) => {
+  try {
+    const response = await api.post("/quiz/generate", requestData);
+    return response.data;
+  } catch (error) {
+    console.error("Error generating quizzes:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get quizzes for a course
+ * @param {string} courseId - The course ID
+ * @param {string} [moduleCode] - Optional module code to filter by
+ * @param {number} [page] - Page number for pagination (default: 1)
+ * @param {number} [size] - Page size (default: 10)
+ * @returns {Promise} - Promise resolving to quiz list response
+ */
+export const getQuizzesByCourse = async (courseId, moduleCode = null, page = 1, size = 10) => {
+  try {
+    const params = { page, size };
+    if (moduleCode) {
+      params.module_code = moduleCode;
+    }
+
+    const response = await api.get(`/quiz/course/${courseId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+    throw error;
+  }
+};
+
+// Content Transformer API functions
+
+/**
+ * Get personalized asset content based on user preferences
+ * @param {string} code - Asset code identifier
+ * @param {string} domain - User's domain preference
+ * @param {string} hobby - User's hobby preference
+ * @param {string} style - User's preferred learning style
+ * @returns {Promise} - Promise resolving to personalized asset data
+ */
+export const getPersonalizedAsset = async (code, domain, hobby, style) => {
+  try {
+    const response = await api.get("/content-transformer/getAsset", {
+      params: {
+        code,
+        domain,
+        hobby,
+        style,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching personalized asset:", error);
     throw error;
   }
 };

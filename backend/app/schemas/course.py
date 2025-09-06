@@ -9,6 +9,8 @@ class AssetBase(BaseModel):
     name: str
     style: str = "original"
     content: str
+    summary: Optional[str] = None
+    summary_updated_at: Optional[datetime] = None
 
 
 class AssetCreate(AssetBase):
@@ -26,6 +28,8 @@ class Asset(AssetBase):
 
 class ModuleBase(BaseModel):
     """Base module schema"""
+    id: str = Field(alias="_id")
+    code: str
     type: str = "module"
     assets: List[str] = []
 

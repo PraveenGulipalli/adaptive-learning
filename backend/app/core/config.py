@@ -4,8 +4,8 @@ import os
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "sqlite:///./app.db"
+    # Database - Default to a safe fallback that won't cause connection errors
+    database_url: str = os.getenv("DATABASE_URL", "mongodb://localhost:27017/adaptive_learning")
     
     # Security
     secret_key: str = "your-secret-key-change-this-in-production"
@@ -25,8 +25,14 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     description: str = "A modern adaptive learning platform with FastAPI backend and React frontend"
     
-    # Google API
+    # LLM Configuration
     google_api_key: str = ""
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    default_llm_provider: str = "google"
+    default_llm_model: str = "gemini-1.5-flash"
+    max_tokens_default: int = 1000
+    temperature_default: float = 0.7
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

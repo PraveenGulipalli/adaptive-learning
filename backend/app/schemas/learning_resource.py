@@ -19,7 +19,7 @@ class LearningResource(LearningResourceBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class LearningResourceUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
