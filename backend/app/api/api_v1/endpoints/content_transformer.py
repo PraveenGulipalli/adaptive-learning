@@ -78,7 +78,7 @@ async def transform_content(request: ContentTransformerRequest, db=Depends(get_d
 - Convert the content into simple, symbolic visual representations (emoji flows, ASCII diagrams, metaphors).
 - Focus on clarity, simplicity, and instant understanding at a glance.
 - Provide 3–4 different cues for the same concept.
-- Each visual cue must connect the concept to the user’s domain and hobby.
+- Each visual cue must connect the concept to the user's domain and hobby.
 - Use emojis, arrows, or short symbolic flows instead of long text.
 - Keep it fun, relatable, and visually intuitive.
 
@@ -94,11 +94,21 @@ VISUAL CUE 4: [Optional extra if needed]
 - Keep it framed in the context of the given domain and hobby.
 - Make it clear, informative, and easy to understand.
 - Use analogies from the hobby to explain domain concepts.
+""",
+            "original": """
+### Original Mode:
+- Return the content as-is without any transformation.
+- This is the original learning material in its basic form.
+- No domain or hobby contextualization needed.
 """
         }
         
-        # Create the AI prompt based on selected style
-        prompt = f"""You are an AI content transformer. 
+        # Handle original style without AI transformation
+        if request.style == "original":
+            output = request.content
+        else:
+            # Create the AI prompt based on selected style
+            prompt = f"""You are an AI content transformer. 
 You will receive four inputs:
 1. Style (storytelling, visual_cue, or summary)
 2. Content (raw lecture, case study, or concept)
@@ -138,17 +148,17 @@ Now transform this content in {request.style} style:
 
 Please provide ONLY the {request.style} output without any formatting or labels:"""
 
-        # Generate response using Google Generative AI
-        response = model.generate_content(prompt)
-        
-        if not response.text:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate content transformation"
-            )
-        
-        # Parse the response - since we asked for only the output, use it directly
-        output = response.text.strip()
+            # Generate response using Google Generative AI
+            response = model.generate_content(prompt)
+            
+            if not response.text:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to generate content transformation"
+                )
+            
+            # Parse the response - since we asked for only the output, use it directly
+            output = response.text.strip()
         
         # Clean up any unwanted formatting
         if output.startswith('"') and output.endswith('"'):
@@ -534,6 +544,114 @@ async def get_all_transformed_assets(db=Depends(get_database)):
             detail=f"Failed to fetch transformed assets: {str(e)}"
         )
 
+
+@router.get(
+    "/getAsset",
+    summary="Get Asset with Default Original Fallback", 
+    description="Get asset by code, domain, hobby, and style. Automatically returns original style for the asset code if specific combination not found."
+)
+async def get_asset(
+    code: str,
+    domain: str,
+    hobby: str,
+    style: str,
+    db=Depends(get_database)
+):
+    """
+    Get asset with specific combination, automatically returns original style if not found.
+    
+    - **code**: Asset code identifier
+    - **domain**: Domain context (e.g., medical, engineering student)  
+    - **hobby**: Hobby context (e.g., movies, gaming, cricket)
+    - **style**: Transformation style (visual_cue, storytelling, summary)
+    
+    Returns the matching asset or automatically returns the original style record for the given asset code.
+    """
+    try:
+        from bson import ObjectId
+        
+        logger.info(f"Searching for asset: code={code}, domain={domain}, hobby={hobby}, style={style}")
+        
+        # Try to convert code to ObjectId for search
+        search_conditions = []
+        
+        # Add both ObjectId and string versions of the code to search
+        try:
+            code_as_objectid = ObjectId(code)
+            search_conditions.extend([
+                {"code": code_as_objectid},
+                {"code": code}
+            ])
+        except Exception:
+            # If not a valid ObjectId, search as string only
+            search_conditions.append({"code": code})
+        
+        # First, try to find exact match with domain, hobby, and style
+        for search_condition in search_conditions:
+            exact_match = await db["assets"].find_one({
+                **search_condition,
+                "domain": domain,
+                "hobby": hobby,
+                "style": style
+            })
+            
+            if exact_match:
+                logger.info(f"Found exact match for code={code}, style={style}")
+                # Convert ObjectId fields to strings for JSON response
+                exact_match["id"] = str(exact_match["_id"])
+                del exact_match["_id"]
+                if "code" in exact_match and hasattr(exact_match["code"], 'generation_time'):
+                    exact_match["code"] = str(exact_match["code"])
+                if "created_at" in exact_match and hasattr(exact_match["created_at"], 'isoformat'):
+                    exact_match["created_at"] = exact_match["created_at"].isoformat()
+                
+                return {
+                    "found": True,
+                    "match_type": "exact",
+                    "asset": exact_match
+                }
+        
+        # If no exact match found, always try to find original style record for the given asset code
+        logger.info(f"No exact match found, searching for original style: code={code}, style=original")
+        
+        for search_condition in search_conditions:
+            fallback_match = await db["assets"].find_one({
+                **search_condition,
+                "style": "original"
+            })
+            
+            if fallback_match:
+                logger.info(f"Found original style record for code={code}")
+                # Convert ObjectId fields to strings for JSON response
+                fallback_match["id"] = str(fallback_match["_id"])
+                del fallback_match["_id"]
+                if "code" in fallback_match and hasattr(fallback_match["code"], 'generation_time'):
+                    fallback_match["code"] = str(fallback_match["code"])
+                if "created_at" in fallback_match and hasattr(fallback_match["created_at"], 'isoformat'):
+                    fallback_match["created_at"] = fallback_match["created_at"].isoformat()
+                
+                return {
+                    "found": True,
+                    "match_type": "default_original",
+                    "asset": fallback_match,
+                    "note": f"No specific match found for domain='{domain}', hobby='{hobby}', style='{style}'. Returning default original content for asset code '{code}'."
+                }
+        
+        # No match found at all (neither specific combination nor original style)
+        logger.info(f"No asset found for code={code} (neither specific combination nor original style)")
+        return {
+            "found": False,
+            "match_type": "none",
+            "asset": None,
+            "message": f"No asset found with code='{code}'. Neither the specific combination (domain='{domain}', hobby='{hobby}', style='{style}') nor the default original style exists."
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in get_asset: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve asset: {str(e)}"
+        )
 
 @router.get(
     "/health",
