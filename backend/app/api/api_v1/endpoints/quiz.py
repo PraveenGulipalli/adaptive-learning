@@ -263,6 +263,7 @@ async def create_quiz_attempt(
     ```json
     {
         "quiz_id": "550e8400-e29b-41d4-a716-446655440000",
+        "user_program_id": "507f1f77bcf86cd799439011",
         "answers": [
             {
                 "question_index": 0,
@@ -288,7 +289,7 @@ async def create_quiz_attempt(
         
         quiz_service = QuizService()
         attempt = await quiz_service.create_quiz_attempt(
-            db, str(current_user.id), attempt_data.quiz_id, answers
+            db, str(current_user.id), attempt_data.quiz_id, attempt_data.user_program_id, answers
         )
         
         return QuizAttemptResponse(**attempt.to_dict())
@@ -305,13 +306,14 @@ async def create_quiz_attempt(
 @router.get("/attempts/my", response_model=List[QuizAttemptResponse])
 async def get_my_quiz_attempts(
     quiz_id: Optional[str] = Query(None, description="Filter by quiz ID"),
+    user_program_id: Optional[str] = Query(None, description="Filter by user program ID"),
     db: AsyncIOMotorDatabase = Depends(get_database),
     current_user: UserModel = Depends(get_current_user)
 ) -> List[QuizAttemptResponse]:
-    """Get all quiz attempts for the current user."""
+    """Get all quiz attempts for the current user, optionally filtered by quiz ID and/or user program ID."""
     try:
         quiz_service = QuizService()
-        attempts = await quiz_service.get_user_quiz_attempts(db, str(current_user.id), quiz_id)
+        attempts = await quiz_service.get_user_quiz_attempts(db, str(current_user.id), quiz_id, user_program_id)
         return [QuizAttemptResponse(**attempt.to_dict()) for attempt in attempts]
         
     except Exception as e:

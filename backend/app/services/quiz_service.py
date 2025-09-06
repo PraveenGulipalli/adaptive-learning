@@ -49,6 +49,7 @@ class QuizService:
                 "total_questions": total_questions,
                 "estimated_time_minutes": quiz_data.estimated_time_minutes,
                 "is_active": True,
+                "is_deleted": False,
                 "generated_by_ai": True,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
@@ -82,7 +83,7 @@ class QuizService:
     async def get_quizzes_by_course(self, db: AsyncIOMotorDatabase, course_id: str, module_code: Optional[str] = None) -> List[Quiz]:
         """Get all quizzes for a course, optionally filtered by module code."""
         try:
-            query = {"course_id": course_id, "is_active": True}
+            query = {"course_id": course_id, "is_active": True, "is_deleted": False}
             
             if module_code:
                 query["module_code"] = module_code
@@ -135,21 +136,49 @@ class QuizService:
             raise
     
     async def delete_quiz(self, db: AsyncIOMotorDatabase, quiz_id: str) -> bool:
-        """Soft delete a quiz in MongoDB."""
+        """Soft delete a quiz in MongoDB by marking as deleted."""
         try:
             result = await db.quizzes.update_one(
                 {"_id": ObjectId(quiz_id)},
-                {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+                {"$set": {"is_deleted": True, "is_active": False, "updated_at": datetime.utcnow()}}
             )
             
             if result.matched_count == 0:
                 return False
             
-            logger.info(f"Deleted quiz: {quiz_id}")
+            logger.info(f"Soft deleted quiz: {quiz_id}")
             return True
             
         except Exception as e:
             logger.error(f"Error deleting quiz {quiz_id}: {e}")
+            raise
+    
+    async def mark_existing_quizzes_as_deleted(self, db: AsyncIOMotorDatabase, course_id: str, module_code: str) -> int:
+        """Mark all existing quizzes for a course/module as deleted during overwrite."""
+        try:
+            result = await db.quizzes.update_many(
+                {
+                    "course_id": course_id,
+                    "module_code": module_code,
+                    "is_deleted": False
+                },
+                {
+                    "$set": {
+                        "is_deleted": True,
+                        "is_active": False,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            deleted_count = result.modified_count
+            if deleted_count > 0:
+                logger.info(f"Marked {deleted_count} existing quizzes as deleted for course: {course_id}, module: {module_code}")
+            
+            return deleted_count
+            
+        except Exception as e:
+            logger.error(f"Error marking quizzes as deleted for course {course_id}, module {module_code}: {e}")
             raise
     
     # Quiz Generation Methods
@@ -275,10 +304,12 @@ class QuizService:
                 result["message"] = "Quiz already exists for this module. Use overwrite=true to regenerate."
                 return result
             
-            # Delete existing quiz if overwrite is true
+            # Mark existing quizzes as deleted if overwrite is true
             if existing_quiz and request.overwrite:
-                for quiz in existing_quiz:
-                    await self.delete_quiz(db, str(quiz.id))
+                deleted_count = await self.mark_existing_quizzes_as_deleted(
+                    db, request.course_id, request.module_code
+                )
+                logger.info(f"Marked {deleted_count} existing quizzes as deleted for overwrite")
             
             # Generate new quiz
             quiz = await self.generate_quiz_for_module(
@@ -332,10 +363,12 @@ class QuizService:
                     skipped_count += 1
                     continue
                 
-                # Delete existing quiz if overwrite is true
+                # Mark existing quizzes as deleted if overwrite is true
                 if existing_quiz and request.overwrite:
-                    for quiz in existing_quiz:
-                        await self.delete_quiz(db, str(quiz.id))
+                    deleted_count = await self.mark_existing_quizzes_as_deleted(
+                        db, request.course_id, module_info.module_code
+                    )
+                    logger.info(f"Marked {deleted_count} existing quizzes as deleted for module {module_info.module_code}")
                 
                 # Generate new quiz
                 quiz = await self.generate_quiz_for_module(
@@ -433,7 +466,7 @@ class QuizService:
             return []
     
     async def _get_module_assets_content(self, db: AsyncIOMotorDatabase, asset_ids: List[str]) -> str:
-        """Get content from assets collection by asset IDs."""
+        """Get content from assets collection by asset IDs with support for different asset types."""
         try:
             if not asset_ids:
                 return ""
@@ -445,6 +478,7 @@ class QuizService:
                     object_ids.append(ObjectId(asset_id))
                 except:
                     # If it's not a valid ObjectId, skip it
+                    logger.warning(f"Invalid ObjectId format: {asset_id}")
                     continue
             
             if not object_ids:
@@ -453,21 +487,88 @@ class QuizService:
             # Get assets from assets collection
             assets_content = []
             async for asset in db.assets.find({"_id": {"$in": object_ids}}):
-                content = asset.get("content", "")
-                title = asset.get("title", "")
-                if title and content:
-                    assets_content.append(f"Asset: {title}\n{content}")
-                elif content:
-                    assets_content.append(content)
+                asset_type = asset.get("type", "text").lower()
+                title = asset.get("title", "Unknown Asset")
+                content = ""
+                
+                # Extract content based on asset type
+                if asset_type == "text":
+                    content = asset.get("content", "")
+                elif asset_type == "video":
+                    # Priority: transcript > description > content > fallback
+                    content = (
+                        asset.get("transcript", "") or 
+                        asset.get("description", "") or 
+                        asset.get("content", "") or
+                        f"Video content: {title}"
+                    )
+                    # Add video metadata if available
+                    if asset.get("duration"):
+                        duration_mins = asset.get("duration", 0) // 60
+                        content += f" (Duration: {duration_mins} minutes)"
+                elif asset_type == "pdf":
+                    # Priority: extracted_text > summary > content > fallback
+                    content = (
+                        asset.get("extracted_text", "") or
+                        asset.get("summary", "") or
+                        asset.get("content", "") or
+                        f"PDF document: {title}"
+                    )
+                elif asset_type == "audio":
+                    # Priority: transcript > description > content > fallback
+                    content = (
+                        asset.get("transcript", "") or
+                        asset.get("description", "") or
+                        asset.get("content", "") or
+                        f"Audio content: {title}"
+                    )
+                    # Add audio metadata if available
+                    if asset.get("duration"):
+                        duration_mins = asset.get("duration", 0) // 60
+                        content += f" (Duration: {duration_mins} minutes)"
+                elif asset_type == "image":
+                    # Priority: description > alt_text > content > fallback
+                    content = (
+                        asset.get("description", "") or
+                        asset.get("alt_text", "") or
+                        asset.get("content", "") or
+                        f"Image: {title}"
+                    )
+                else:
+                    # Default fallback for unknown types
+                    content = asset.get("content", "") or f"{asset_type.title()}: {title}"
+                
+                # Add additional context if available
+                if asset.get("description") and asset_type != "image":
+                    # Don't duplicate description for images since it's primary content
+                    if content != asset.get("description"):
+                        content += f"\nDescription: {asset.get('description')}"
+                
+                # Add difficulty level if available
+                if asset.get("metadata", {}).get("difficulty"):
+                    difficulty = asset.get("metadata", {}).get("difficulty")
+                    content += f"\nDifficulty: {difficulty}"
+                
+                # Only add if we have meaningful content
+                if content and content.strip():
+                    asset_header = f"Asset ({asset_type.upper()}): {title}"
+                    assets_content.append(f"{asset_header}\n{content.strip()}")
+                else:
+                    logger.warning(f"No content found for asset: {title} (type: {asset_type})")
             
-            return "\n\n".join(assets_content)
+            if not assets_content:
+                logger.warning("No content extracted from any assets")
+                return ""
+            
+            logger.info(f"Successfully extracted content from {len(assets_content)} assets")
+            return "\n\n" + "="*50 + "\n\n".join(assets_content) + "\n\n" + "="*50
             
         except Exception as e:
             logger.error(f"Error getting assets content: {e}")
             return ""
     
     # Quiz Attempt Methods
-    async def create_quiz_attempt(self, db: AsyncIOMotorDatabase, user_id: str, quiz_id: str, answers: List[Dict]) -> QuizAttempt:
+    async def create_quiz_attempt(self, db: AsyncIOMotorDatabase, user_id: str, quiz_id: str, user_program_id: str, answers: List[Dict]) -> QuizAttempt:
         """Create a new quiz attempt in MongoDB."""
         try:
             quiz = await self.get_quiz(db, quiz_id)
@@ -492,6 +593,7 @@ class QuizService:
                 "_id": ObjectId(),
                 "quiz_id": quiz_id,
                 "user_id": user_id,
+                "user_program_id": user_program_id,
                 "answers": answers,
                 "score": score,
                 "max_score": max_score,
@@ -515,13 +617,16 @@ class QuizService:
             logger.error(f"Error creating quiz attempt: {e}")
             raise
     
-    async def get_user_quiz_attempts(self, db: AsyncIOMotorDatabase, user_id: str, quiz_id: Optional[str] = None) -> List[QuizAttempt]:
+    async def get_user_quiz_attempts(self, db: AsyncIOMotorDatabase, user_id: str, quiz_id: Optional[str] = None, user_program_id: Optional[str] = None) -> List[QuizAttempt]:
         """Get quiz attempts for a user from MongoDB."""
         try:
             query = {"user_id": user_id}
             
             if quiz_id:
                 query["quiz_id"] = quiz_id
+                
+            if user_program_id:
+                query["user_program_id"] = user_program_id
             
             attempt_docs = []
             async for doc in db.quiz_attempts.find(query).sort("started_at", -1):

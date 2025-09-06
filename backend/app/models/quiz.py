@@ -26,6 +26,7 @@ class Quiz(Base):
         self.total_questions = data.get('total_questions', len(self.questions))
         self.estimated_time_minutes = data.get('estimated_time_minutes')
         self.is_active = data.get('is_active', True)
+        self.is_deleted = data.get('is_deleted', False)
         self.generated_by_ai = data.get('generated_by_ai', True)
         self.created_at = data.get('created_at', datetime.utcnow())
         self.updated_at = data.get('updated_at', datetime.utcnow())
@@ -53,6 +54,7 @@ class Quiz(Base):
             "total_questions": self.total_questions,
             "estimated_time_minutes": self.estimated_time_minutes,
             "is_active": self.is_active,
+            "is_deleted": self.is_deleted,
             "generated_by_ai": self.generated_by_ai,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
@@ -71,6 +73,7 @@ class Quiz(Base):
             "total_questions": self.total_questions,
             "estimated_time_minutes": self.estimated_time_minutes,
             "is_active": self.is_active,
+            "is_deleted": self.is_deleted,
             "generated_by_ai": self.generated_by_ai,
             "created_at": self.created_at,
             "updated_at": self.updated_at
@@ -93,6 +96,7 @@ class QuizAttempt(Base):
         self._id = data.get('_id', ObjectId())
         self.quiz_id = data.get('quiz_id')
         self.user_id = data.get('user_id')
+        self.user_program_id = data.get('user_program_id')
         self.answers = data.get('answers', [])
         self.score = data.get('score', 0)
         self.max_score = data.get('max_score', 0)
@@ -121,6 +125,7 @@ class QuizAttempt(Base):
             "id": str(self._id),
             "quiz_id": self.quiz_id,
             "user_id": self.user_id,
+            "user_program_id": self.user_program_id,
             "answers": self.answers,
             "score": self.score,
             "max_score": self.max_score,
@@ -137,6 +142,7 @@ class QuizAttempt(Base):
             "_id": self._id,
             "quiz_id": self.quiz_id,
             "user_id": self.user_id,
+            "user_program_id": self.user_program_id,
             "answers": self.answers,
             "score": self.score,
             "max_score": self.max_score,

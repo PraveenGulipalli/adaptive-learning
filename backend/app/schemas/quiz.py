@@ -62,6 +62,7 @@ class QuizResponse(QuizBase):
     module_code: Optional[str]
     total_questions: int
     is_active: bool
+    is_deleted: bool
     generated_by_ai: bool
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
@@ -115,6 +116,7 @@ class QuizAttemptAnswer(BaseModel):
 class QuizAttemptCreate(BaseModel):
     """Schema for creating a quiz attempt."""
     quiz_id: str = Field(..., description="UUID of the quiz")
+    user_program_id: str = Field(..., description="User program enrollment ID")
     answers: List[QuizAttemptAnswer] = Field(..., min_items=1, description="List of answers")
 
 
@@ -123,6 +125,7 @@ class QuizAttemptResponse(BaseModel):
     id: str
     quiz_id: str
     user_id: str
+    user_program_id: str
     answers: List[Dict[str, Any]]
     score: int
     max_score: int
