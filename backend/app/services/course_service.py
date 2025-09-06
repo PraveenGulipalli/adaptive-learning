@@ -4,6 +4,20 @@ from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.mongodb import get_database
+
+
+def convert_objectids_to_strings(data):
+    """Recursively convert ObjectId fields to strings in a dictionary"""
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, ObjectId):
+                data[key] = str(value)
+            elif isinstance(value, (dict, list)):
+                convert_objectids_to_strings(value)
+    elif isinstance(data, list):
+        for item in data:
+            convert_objectids_to_strings(item)
+    return data
 from app.models.course import Course, Asset, Module
 from app.schemas.course import CourseCreate, CourseUpdate, AssetCreate
 
@@ -53,6 +67,10 @@ class CourseService:
                 for module in course.get("modules", []):
                     if "assets" in module:
                         module["assets"] = [str(asset_id) for asset_id in module["assets"]]
+                    # Convert any other ObjectId fields in module
+                    for key, value in module.items():
+                        if isinstance(value, ObjectId):
+                            module[key] = str(value)
             return course
         except Exception as e:
             print(f"Error getting course: {e}")
@@ -74,11 +92,15 @@ class CourseService:
                     asset = await self.assets_collection.find_one({"_id": ObjectId(asset_id)})
                     if asset:
                         asset["_id"] = str(asset["_id"])
+                        # Convert ObjectId fields to strings
+                        if isinstance(asset.get("code"), ObjectId):
+                            asset["code"] = str(asset["code"])
                         assets.append(asset)
                 
                 module["assets"] = assets
 
-            return course
+            # Convert all ObjectIds to strings
+            return convert_objectids_to_strings(course)
         except Exception as e:
             print(f"Error getting course with assets: {e}")
             return None
@@ -108,13 +130,17 @@ class CourseService:
                     asset = await self.assets_collection.find_one({"_id": ObjectId(asset_id)})
                     if asset:
                         asset["_id"] = str(asset["_id"])
+                        # Convert ObjectId fields to strings
+                        if isinstance(asset.get("code"), ObjectId):
+                            asset["code"] = str(asset["code"])
                         # Add user progress status
                         asset["user_status"] = user_statuses.get(str(asset_id), "not-started")
                         assets.append(asset)
                 
                 module["assets"] = assets
 
-            return course
+            # Convert all ObjectIds to strings
+            return convert_objectids_to_strings(course)
         except Exception as e:
             print(f"Error getting course with user progress: {e}")
             return None
