@@ -18,7 +18,11 @@ function App() {
     }
     // If profile exists and user is on login page, redirect to home
     else if (userProfile && location.pathname === "/login") {
-      navigate("/");
+      if (JSON.parse(userProfile)?.name) {
+        navigate("/");
+      } else {
+        navigate("/save-preference");
+      }
     }
   }, [location.pathname]);
 
