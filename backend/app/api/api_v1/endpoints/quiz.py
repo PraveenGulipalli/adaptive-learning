@@ -13,7 +13,7 @@ from app.schemas.quiz import (
     QuizCreate, QuizUpdate, QuizResponse, QuizListResponse,
     QuizGenerationRequest, QuizGenerationResponse,
     QuizAttemptCreate, QuizAttemptResponse,
-    QuizGenerationStatus
+    QuizGenerationStatus, PersonalizedQuizRequest
 )
 from app.services.quiz_service import QuizService
 
@@ -372,4 +372,49 @@ async def get_course_quiz_stats(
         raise HTTPException(
             status_code=500,
             detail=f"Error getting quiz stats: {str(e)}"
+        )
+
+
+@router.post("/generate-personalized", response_model=QuizResponse)
+async def generate_personalized_quiz(
+    request: PersonalizedQuizRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Generate a personalized quiz based on content, user's domain, and interests.
+    
+    This endpoint creates scenario-based questions that combine:
+    - Learning content concepts
+    - User's professional domain
+    - User's personal interests
+    """
+    try:
+        quiz_service = QuizService()
+        
+        quiz = await quiz_service.generate_personalized_quiz(
+            db=db,
+            content=request.content,
+            domain=request.domain,
+            interests=request.interests,
+            course_id=request.course_id,
+            module_code=request.module_code,
+            num_questions=request.num_questions,
+            difficulty=request.difficulty
+        )
+        
+        if not quiz:
+            raise HTTPException(
+                status_code=500, # Changed from status.HTTP_500_INTERNAL_SERVER_ERROR to 500
+                detail="Failed to generate personalized quiz"
+            )
+        
+        return quiz
+        
+    except Exception as e:
+        # Assuming logger is available, otherwise replace with print or similar
+        # from app.core.logger import logger
+        # logger.error(f"Error in generate_personalized_quiz endpoint: {e}")
+        raise HTTPException(
+            status_code=500, # Changed from status.HTTP_500_INTERNAL_SERVER_ERROR to 500
+            detail=f"Quiz generation failed: {str(e)}"
         )

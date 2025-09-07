@@ -157,3 +157,21 @@ class QuizGenerationStatus(BaseModel):
     modules_with_quizzes: int
     modules_without_quizzes: int
     last_generated: Optional[datetime] = None
+
+
+class PersonalizedQuizRequest(BaseModel):
+    """Schema for personalized quiz request."""
+    course_id: str = Field(..., min_length=24, max_length=24, description="MongoDB ObjectId of the course")
+    content: str = Field(..., description="Content to generate quiz from")
+    domain: str = Field(..., description="User's professional domain")
+    interests: str = Field(..., description="User's personal interests")
+    module_code: Optional[str] = Field(None, description="Module code reference (optional)")
+    difficulty: Optional[str] = Field("medium", pattern="^(easy|medium|hard)$", description="Quiz difficulty level")
+    num_questions: Optional[int] = Field(5, ge=1, le=20, description="Number of questions to generate")
+    
+    @validator('course_id')
+    def validate_object_id(cls, v):
+        """Validate MongoDB ObjectId format."""
+        if v and len(v) != 24:
+            raise ValueError('Must be a valid 24-character MongoDB ObjectId')
+        return v
