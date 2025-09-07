@@ -86,6 +86,8 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint for load balancers and monitoring"""
+    from app.core.mongodb import mongodb
+    
     db_status = "unavailable"
     
     # Check MongoDB connection if it was initialized
@@ -177,7 +179,6 @@ async def test_course_assets_with_progress(course_id: str, user_id: str):
 async def test_translate_asset(
     asset_code: str = Form(...),
     target_language: str = Form(...),
-    content: str = Form(...)
 ):
     """Test endpoint for translation API (no authentication)"""
     try:
@@ -191,6 +192,35 @@ async def test_translate_asset(
         # Validate target language
         if target_language not in ["hi", "te"]:
             return {"error": "Target language must be 'hi' (Hindi) or 'te' (Telugu)"}
+        
+        # Get content from assets collection based on asset code and language "en"
+        from bson import ObjectId
+        
+        # Try to convert asset_code to ObjectId if it looks like one
+        try:
+            asset_code_obj = ObjectId(asset_code)
+        except:
+            asset_code_obj = asset_code
+        
+        # First try to find asset with specific language
+        asset = await db.assets.find_one({"code": asset_code_obj, "language": "en"})
+        
+        # If not found, try without language field (legacy assets)
+        if not asset:
+            asset = await db.assets.find_one({
+                "code": asset_code_obj,
+                "$or": [
+                    {"language": {"$exists": False}},
+                    {"language": "en"}
+                ]
+            })
+        
+        if not asset:
+            return {"error": f"Asset with code '{asset_code}' and language 'en' not found"}
+        
+        content = asset.get("content")
+        if not content:
+            return {"error": f"No content found for asset '{asset_code}'"}
         
         translation_service = TranslationService(db)
         translation = await translation_service.create_translation(
@@ -251,6 +281,83 @@ async def test_asset_summary(asset_id: str = Form(...)):
             
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/get-asset")
+async def get_asset(asset_code: str, language: str = "en"):
+    """
+    Retrieve an asset based on asset code and language.
+    
+    Args:
+        asset_code: The asset code to search for
+        language: The language of the asset (default: "en")
+    
+    Returns:
+        The asset data if found, error message if not found
+    """
+    try:
+        # Get database connection
+        from app.core.mongodb import get_database
+        db = get_database()
+        if db is None:
+            return {"error": "Database connection failed"}
+        
+        # Search for asset by code (as string first)
+        asset = await db.assets.find_one({"code": asset_code, "language": language})
+        
+        # If not found, try without language field (legacy assets)
+        if not asset:
+            asset = await db.assets.find_one({
+                "code": asset_code,
+                "$or": [
+                    {"language": {"$exists": False}},
+                    {"language": None},
+                    {"language": ""}
+                ]
+            })
+        
+        # If still not found, try with ObjectId conversion
+        if not asset:
+            from bson import ObjectId
+            try:
+                asset_code_obj = ObjectId(asset_code)
+                asset = await db.assets.find_one({"code": asset_code_obj, "language": language})
+                if not asset:
+                    asset = await db.assets.find_one({
+                        "code": asset_code_obj,
+                        "$or": [
+                            {"language": {"$exists": False}},
+                            {"language": None},
+                            {"language": ""}
+                        ]
+                    })
+            except:
+                pass
+        
+        if not asset:
+            return {"error": f"Asset with code '{asset_code}' not found"}
+        
+        # Convert all ObjectId fields to strings for JSON serialization
+        from bson import ObjectId
+        def convert_objectids(obj):
+            if isinstance(obj, ObjectId):
+                return str(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_objectids(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_objectids(item) for item in obj]
+            else:
+                return obj
+        
+        asset = convert_objectids(asset)
+        
+        return {
+            "success": True,
+            "asset": asset
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to retrieve asset: {str(e)}"}
 
 
 # Global exception handler
