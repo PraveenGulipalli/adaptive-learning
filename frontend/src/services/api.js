@@ -182,6 +182,29 @@ export const getPersonalizedAsset = async (code, domain, hobby, style) => {
   }
 };
 
+// Translation API functions
+
+/**
+ * Translate asset content to target language
+ * @param {string} assetCode - The asset code
+ * @param {string} targetLanguage - Target language (hi for Hindi, te for Telugu)
+ * @returns {Promise} - Promise resolving to translated asset data
+ */
+export const translateAsset = async (assetCode, targetLanguage) => {
+  try {
+    const params = {
+      asset_code: assetCode,
+      language: targetLanguage,
+    };
+
+    const response = await courseApi.get("/get-asset", { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error translating asset:", error);
+    throw error;
+  }
+};
+
 // Export the axios instances for additional custom requests if needed
 export { courseApi };
 export default api;

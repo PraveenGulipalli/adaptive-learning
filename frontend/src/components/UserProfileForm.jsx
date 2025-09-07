@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserPreferences, updateUserPreferences } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -31,6 +31,20 @@ function UserProfileForm({ isUpdate }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Store initial values for comparison when in update mode
+  const [initialProfile, setInitialProfile] = useState(null);
+
+  // Set initial values when in update mode
+  useEffect(() => {
+    if (isUpdate && profile && !initialProfile) {
+      setInitialProfile({
+        domain: profile.domain,
+        hobbies: profile.hobbies,
+        learningStyle: profile.learningStyle,
+      });
+    }
+  }, [isUpdate, profile, initialProfile]);
+
   const handleChange = (name, value) => {
     setProfile((prevProfile) => ({
       ...prevProfile,
@@ -41,6 +55,17 @@ function UserProfileForm({ isUpdate }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     handleChange(name, value);
+  };
+
+  // Check if any editable values have changed from initial values
+  const hasChanges = () => {
+    if (!isUpdate || !initialProfile) return true; // Allow submission for new profiles or when initial values aren't set yet
+
+    return (
+      profile.domain !== initialProfile.domain ||
+      profile.hobbies !== initialProfile.hobbies ||
+      profile.learningStyle !== initialProfile.learningStyle
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -110,8 +135,8 @@ function UserProfileForm({ isUpdate }) {
       <div className="w-full max-w-md">
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-6">
-            <div className="mx-auto w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-secondary-foreground" />
+            <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-tr from-sky-200 via-blue-400 to-indigo-900 to-90% flex items-center justify-center">
+              <User className="w-8 h-8 text-white" />
             </div>
             <div className="space-y-2">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
@@ -143,7 +168,6 @@ function UserProfileForm({ isUpdate }) {
                   disabled
                   className="bg-muted text-muted-foreground"
                 />
-                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
 
               {/* Full Name Input */}
@@ -162,7 +186,6 @@ function UserProfileForm({ isUpdate }) {
                   disabled={isUpdate}
                   className={isUpdate ? "bg-muted text-muted-foreground" : ""}
                 />
-                {isUpdate && <p className="text-xs text-muted-foreground">Name cannot be changed</p>}
               </div>
 
               {/* Domain Selection */}
@@ -231,7 +254,11 @@ function UserProfileForm({ isUpdate }) {
               )}
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-semibold"
+                disabled={isLoading || !hasChanges()}
+              >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />

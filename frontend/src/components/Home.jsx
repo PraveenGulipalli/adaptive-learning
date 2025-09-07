@@ -140,26 +140,26 @@ function Home() {
   return (
     <>
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="w-full fixed top-0 z-50 border-b bg-accent/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-0">
               Adaptive Learning
             </h1>
           </div>
 
           <Button variant="outline" onClick={() => navigate("/update-preference")} className="gap-2">
             <Settings className="w-4 h-4" />
-            Change Preference
+            Change Learning Preference
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container flex gap-6 py-6 min-h-[calc(100vh-4rem)]">
+      <main className="container flex gap-6 py-6 min-h-[calc(100vh-4rem)] mt-16">
         {/* Sidebar - Course Tree */}
         <aside className="w-80 flex-shrink-0">
           <CourseTree course={courseData} isLoading={isLoading} error={error} onAssetClick={handleAssetClick} />
