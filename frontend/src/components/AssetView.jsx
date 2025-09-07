@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import MockInterviewGenerator from "./MockInterviewGenerator";
 import {
   FileText,
   X,
@@ -20,6 +21,7 @@ import {
   Loader2,
   AlertCircle,
   Languages,
+  Mic,
 } from "lucide-react";
 
 const preprocessMarkdown = (markdown) => {
@@ -43,12 +45,14 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
   const [translatedContent, setTranslatedContent] = useState(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationError, setTranslationError] = useState(null);
+  const [showMockInterview, setShowMockInterview] = useState(false);
 
   useEffect(() => {
     setPersonalizedContent(null);
     setTranslatedContent(null);
     setSelectedLanguage("en");
     setTranslationError(null);
+    setShowMockInterview(false);
   }, [asset]);
 
   /**
@@ -71,17 +75,12 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
       const hobby = profile.hobbies;
       const style = profile.learningStyle;
 
-      console.log("Generating personalized content with:", {
-        code: asset.code,
-        domain,
-        hobby,
-        style,
-      });
+
 
       const personalizedAsset = await getPersonalizedAsset(asset.code, domain, hobby, style);
       setPersonalizedContent(personalizedAsset);
 
-      console.log("Personalized content generated successfully");
+
     } catch (error) {
       console.error("Error generating personalized content:", error);
       // You might want to show a toast notification here
@@ -117,6 +116,85 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
       setIsTranslating(false);
     }
   };
+
+  // Mock interview handlers
+  const handleMockInterviewClick = () => {
+    setShowMockInterview(true);
+  };
+
+  // Extract topic from asset title or use general
+  const getAssetTopic = () => {
+    if (!asset?.title) return "general";
+    const title = asset.title.toLowerCase();
+    if (title.includes("javascript") || title.includes("js")) return "javascript";
+    if (title.includes("react")) return "react";
+    if (title.includes("python")) return "python";
+    if (title.includes("node")) return "node";
+    if (title.includes("database") || title.includes("sql")) return "database";
+    if (title.includes("system") || title.includes("design")) return "system-design";
+    return "general";
+  };
+
+  // Render Mock Interview if active
+  if (showMockInterview) {
+    // Debug logging to see what content we have
+    
+    // Function to extract text from HTML content - comprehensive HTML stripping
+    const extractTextFromHTML = (htmlContent) => {
+      if (!htmlContent) return "";
+      
+      // Create a temporary div to parse HTML and extract text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // Get text content and clean it further
+      let text = tempDiv.textContent || tempDiv.innerText || "";
+      
+      // Additional cleaning for any remaining HTML artifacts
+      text = text
+        // Remove any remaining HTML entities
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&apos;/g, "'")
+        .replace(/&hellip;/g, '...')
+        .replace(/&mdash;/g, '—')
+        .replace(/&ndash;/g, '–')
+        // Normalize whitespace
+        .replace(/\s+/g, ' ')
+        // Remove extra spaces around punctuation
+        .replace(/\s+([,.!?;:])/g, '$1')
+        .trim();
+      
+      return text;
+    };
+    
+    // Get the content - prioritize personalized content, then translated, then original
+    let contentToUse = "";
+    
+    if (personalizedContent?.asset?.content) {
+      // Use personalized content if available
+      contentToUse = personalizedContent.asset.content;
+    } else if (translatedContent?.asset?.content) {
+      // Use translated content if available
+      contentToUse = extractTextFromHTML(translatedContent.asset.content);
+    } else if (asset?.content) {
+      // Use original asset content
+      contentToUse = extractTextFromHTML(asset.content);
+    }
+    
+    return (
+      <MockInterviewGenerator 
+        onBack={() => setShowMockInterview(false)} 
+        assetTopic={getAssetTopic()} 
+        assetContent={contentToUse}
+        assetTitle={asset?.name || asset?.title || ""}
+      />
+    );
+  }
 
   if (!asset) {
     return (
@@ -178,7 +256,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                     <div className="flex items-center gap-2">
                       <Languages className="w-4 h-4 text-muted-foreground" />
                       <Select value={selectedLanguage} onValueChange={handleLanguageChange} disabled={isTranslating}>
-                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectTrigger className="w-[100px] h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -221,6 +299,17 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                     )}
                   </Button>
                 )}
+                
+                {/* Mock Interview Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMockInterviewClick}
+                  className="gap-2"
+                >
+                  <Mic className="w-4 h-4" />
+                  Mock Interview
+                </Button>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
                 <X className="h-4 w-4" />

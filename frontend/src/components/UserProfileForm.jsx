@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { AlertCircle, User, Mail, Target, Heart, Brain, Save, Edit, Loader2 } from "lucide-react";
+import { AlertCircle, User, Mail, Target, Heart, Brain, Save, Edit, Loader2, ArrowLeft } from "lucide-react";
 
 /**
  * A form to collect user profile information for content personalization.
@@ -135,6 +135,20 @@ function UserProfileForm({ isUpdate }) {
       <div className="w-full max-w-md">
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-6">
+            {/* Back Button - Only show when updating */}
+            {isUpdate && (
+              <div className="flex justify-start">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/")} 
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Button>
+              </div>
+            )}
+            
             <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-tr from-sky-200 via-blue-400 to-indigo-900 to-90% flex items-center justify-center">
               <User className="w-8 h-8 text-white" />
             </div>

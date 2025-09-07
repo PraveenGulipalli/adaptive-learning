@@ -52,6 +52,23 @@ function Home() {
 
         const moduleCode = selectedModule.code;
 
+        // Check if module is already completed in localStorage
+        const isModuleCompleted = localStorage.getItem(moduleCode) === 'completed';
+        
+        if (isModuleCompleted) {
+          // Navigate to first asset of next module
+          const currentModuleIndex = courseData.modules.findIndex(module => module.code === moduleCode);
+          if (currentModuleIndex < courseData.modules.length - 1) {
+            const nextModule = courseData.modules[currentModuleIndex + 1];
+            if (nextModule && nextModule.assets && nextModule.assets.length > 0) {
+              const firstAssetOfNextModule = nextModule.assets[0];
+              const isLastAssetInNextModule = nextModule.assets.length === 1;
+              handleAssetClick(firstAssetOfNextModule, isLastAssetInNextModule, nextModule);
+            }
+          }
+          return;
+        }
+
         const existingQuizzes = await getQuizzesByCourse(defaultCourseId, moduleCode);
 
         if (existingQuizzes && existingQuizzes.quizzes && existingQuizzes.quizzes.length > 0) {

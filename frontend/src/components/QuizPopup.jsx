@@ -56,7 +56,6 @@ function QuizPopup({ quiz, isOpen, onClose }) {
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
   const progress = ((currentQuestionIndex + (showResult ? 1 : 0)) / quiz.questions.length) * 100;
-
   const handleAnswerSelect = (answerIndex) => {
     if (!showResult) {
       setSelectedAnswer(answerIndex);
@@ -105,6 +104,15 @@ function QuizPopup({ quiz, isOpen, onClose }) {
     setFinalScore(calculatedFinalScore);
     setFinalPercentage(percentage);
     setShowCompletion(true);
+
+    // Store module completion in localStorage
+    if (quiz.module_code) {
+      try {
+        localStorage.setItem(quiz.module_code, 'completed');
+      } catch (error) {
+        console.error('Error storing module completion in localStorage:', error);
+      }
+    }
   };
 
   const handleRetakeQuiz = () => {
@@ -120,8 +128,14 @@ function QuizPopup({ quiz, isOpen, onClose }) {
   };
 
   const handleClose = () => {
-    if (window.confirm("Are you sure you want to close the quiz? Your progress will be lost.")) {
+    if (showCompletion) {
+      // No alert when quiz is completed - just close
       onClose();
+    } else {
+      // Show alert only when quiz is in progress
+      if (window.confirm("Are you sure you want to close the quiz? Your progress will be lost.")) {
+        onClose();
+      }
     }
   };
 
