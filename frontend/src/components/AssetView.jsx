@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { getPersonalizedAsset } from "../services/api";
+import { getPersonalizedAsset, translateAsset } from "../services/api";
 import MarkdownPreview from "@uiw/react-markdown-preview";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
   FileText,
   X,
@@ -20,6 +21,7 @@ import {
   AlertCircle,
   Globe,
   Heart,
+  Languages,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 
@@ -40,9 +42,16 @@ const preprocessMarkdown = (markdown) => {
 function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, quizGenerationError = null }) {
   const [isGeneratingPersonalized, setIsGeneratingPersonalized] = useState(false);
   const [personalizedContent, setPersonalizedContent] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [translatedContent, setTranslatedContent] = useState(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationError, setTranslationError] = useState(null);
 
   useEffect(() => {
     setPersonalizedContent(null);
+    setTranslatedContent(null);
+    setSelectedLanguage("en");
+    setTranslationError(null);
   }, [asset]);
 
   /**
@@ -81,6 +90,34 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
       // You might want to show a toast notification here
     } finally {
       setIsGeneratingPersonalized(false);
+    }
+  };
+
+  /**
+   * Handles language change and translation
+   */
+  const handleLanguageChange = async (language) => {
+    if (!asset?.code || language === "en") {
+      setSelectedLanguage(language);
+      setTranslatedContent(null);
+      setTranslationError(null);
+      return;
+    }
+
+    try {
+      setIsTranslating(true);
+      setTranslationError(null);
+      setSelectedLanguage(language);
+
+      const translatedAsset = await translateAsset(asset.code, language);
+      setTranslatedContent(translatedAsset);
+    } catch (error) {
+      console.error("Error translating content:", error);
+      setTranslationError(error.message || "Translation failed");
+      // Reset to English on error
+      setSelectedLanguage("en");
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -136,40 +173,80 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                 <FileText className="w-6 h-6 text-primary" />
               </div>
-              <div className="space-y-2">
+              <div className="flex gap-4 items-center">
                 <CardTitle className="text-xl font-bold text-primary">{asset.name}</CardTitle>
-                Metadata badges - uncomment if needed
-                <div className="flex items-center gap-2 text-sm">
-                  {asset.language && (
-                    <Badge variant="outline" className="gap-1">
-                      <Globe className="w-3 h-3" />
-                      {asset.language.toUpperCase()}
-                    </Badge>
-                  )}
-                  {asset.domain && (
-                    <Badge variant="outline" className="gap-1">
-                      <Target className="w-3 h-3" />
-                      {asset.domain}
-                    </Badge>
-                  )}
-                  {asset.hobby && (
-                    <Badge variant="outline" className="gap-1">
-                      <Heart className="w-3 h-3" />
-                      {asset.hobby}
-                    </Badge>
+                <div className="flex items-center gap-3 text-sm">
+                  {/* Language Selector */}
+                  {!personalizedContent?.asset?.content && (
+                    <div className="flex items-center gap-2">
+                      <Languages className="w-4 h-4 text-muted-foreground" />
+                      <Select value={selectedLanguage} onValueChange={handleLanguageChange} disabled={isTranslating}>
+                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
+                          <SelectItem value="te">తెలుగు (Telugu)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {isTranslating && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                {personalizedContent ? (
+                  <Button variant="outline" size="sm" onClick={() => setPersonalizedContent(null)} className="gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    Show Original
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGeneratePersonalizedContent}
+                    disabled={isGeneratingPersonalized}
+                    className="gap-2 min-w-[256px]"
+                  >
+                    {isGeneratingPersonalized ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Generate Personalized Content
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
         {/* Asset Content */}
         <CardContent className="flex-1 overflow-y-auto p-0">
           <div className="p-6 space-y-4">
+            {/* Translation Error */}
+            {translationError && (
+              <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-destructive">Translation Error</p>
+                  <p className="text-xs text-muted-foreground">{translationError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Translated Content */}
             {personalizedContent?.asset?.content && personalizedContent?.match_type === "generated" ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
@@ -191,6 +268,22 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                   />
                 </div>
               </div>
+            ) : translatedContent && selectedLanguage !== "en" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Languages className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-600">Translated Content</p>
+                    <p className="text-xs text-muted-foreground">
+                      Translated to {selectedLanguage === "hi" ? "Hindi" : "Telugu"}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="prose prose-sm max-w-none text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: translatedContent.content }}
+                />
+              </div>
             ) : (
               asset.content && (
                 <div
@@ -206,36 +299,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
 
         {/* Action Bar */}
         <CardContent className="p-4">
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGeneratePersonalizedContent}
-                disabled={isGeneratingPersonalized}
-                className="gap-2"
-              >
-                {isGeneratingPersonalized ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Generate Personalized Content
-                  </>
-                )}
-              </Button>
-
-              {personalizedContent && (
-                <Button variant="outline" size="sm" onClick={() => setPersonalizedContent(null)} className="gap-2">
-                  <RefreshCw className="w-4 h-4" />
-                  Show Original
-                </Button>
-              )}
-            </div>
-
+          <div className="flex justify-center items-center gap-4">
             <div className="flex flex-col items-end gap-2">
               {quizGenerationError && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-sm">
@@ -245,7 +309,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                 </div>
               )}
 
-              <Button onClick={handleNextClick} disabled={isGeneratingQuiz} className="gap-2 min-w-[120px]">
+              <Button onClick={handleNextClick} disabled={isGeneratingQuiz} className="gap-2 min-w-[180px]">
                 {isGeneratingQuiz ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
