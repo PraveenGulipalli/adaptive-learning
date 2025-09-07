@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # CORS
-    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    allowed_origins: List[str] = ["*"]
     
     # API
     api_v1_prefix: str = "/api/v1"
