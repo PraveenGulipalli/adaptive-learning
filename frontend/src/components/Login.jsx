@@ -78,7 +78,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-6">
-            <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-b from-sky-200 via-blue-400 to-indigo-900 to-90% flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
             <div className="space-y-2">
@@ -88,6 +88,7 @@ const Login = () => {
               <CardDescription className="text-base text-muted-foreground">
                 Enter your email to access your personalized learning experience
               </CardDescription>
+              <p className="font-medium m-0">Default Email: test.user@upgrad.com</p>
             </div>
           </CardHeader>
 

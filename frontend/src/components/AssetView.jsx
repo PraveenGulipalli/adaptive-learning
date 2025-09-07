@@ -19,11 +19,8 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
-  Globe,
-  Heart,
   Languages,
 } from "lucide-react";
-import { Badge } from "./ui/badge";
 
 const preprocessMarkdown = (markdown) => {
   if (!markdown) return "";
@@ -247,7 +244,7 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
             )}
 
             {/* Translated Content */}
-            {personalizedContent?.asset?.content && personalizedContent?.match_type === "generated" ? (
+            {personalizedContent?.asset?.content && ["generated", "exact"].includes(personalizedContent?.match_type) ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
                   <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
@@ -268,27 +265,11 @@ function AssetView({ asset, onClose, handleNextClick, isGeneratingQuiz = false, 
                   />
                 </div>
               </div>
-            ) : translatedContent && selectedLanguage !== "en" ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Languages className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-blue-600">Translated Content</p>
-                    <p className="text-xs text-muted-foreground">
-                      Translated to {selectedLanguage === "hi" ? "Hindi" : "Telugu"}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className="prose prose-sm max-w-none text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: translatedContent.content }}
-                />
-              </div>
             ) : (
-              asset.content && (
+              (asset.content || translatedContent) && (
                 <div
                   className="prose prose-sm max-w-none text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: asset.content }}
+                  dangerouslySetInnerHTML={{ __html: translatedContent?.asset?.content ?? asset.content }}
                 />
               )
             )}

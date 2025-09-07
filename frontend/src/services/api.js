@@ -188,21 +188,16 @@ export const getPersonalizedAsset = async (code, domain, hobby, style) => {
  * Translate asset content to target language
  * @param {string} assetCode - The asset code
  * @param {string} targetLanguage - Target language (hi for Hindi, te for Telugu)
- * @param {string} content - The content to translate
  * @returns {Promise} - Promise resolving to translated asset data
  */
-export const translateAsset = async (assetCode, targetLanguage, content) => {
+export const translateAsset = async (assetCode, targetLanguage) => {
   try {
-    const formData = new FormData();
-    formData.append("asset_code", assetCode);
-    formData.append("target_language", targetLanguage);
-    formData.append("content", content);
+    const params = {
+      asset_code: assetCode,
+      language: targetLanguage,
+    };
 
-    const response = await courseApi.post("/test-translate", formData, {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await courseApi.get("/get-asset", { params });
     return response.data;
   } catch (error) {
     console.error("Error translating asset:", error);
